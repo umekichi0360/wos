@@ -1,0 +1,15 @@
+{
+  "name": "ホワサバ作戦 Commander",
+  "short_name": "作戦指揮",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#ff4b5c",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2554/2554936.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
