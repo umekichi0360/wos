@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WOS Commander Expert Pro</title>
+    <title>WOS Commander Expert Pro Max</title>
     <style>
-        :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; }
+        :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; --enemy: #fb7185; --ally: #38bdf8; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
         
@@ -27,29 +27,35 @@
         .title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
         
         .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
-        .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; }
+        .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; position: relative; }
+        .member-row.is-enemy { border-left: 4px solid var(--enemy); }
+        .member-row.is-ally { border-left: 4px solid var(--ally); }
         
         .dest-time-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .dest-time-item:last-child { border-bottom: none; }
-        .dest-label { font-size: 0.85rem; color: var(--secondary); flex: 1; }
+        .dest-label { font-size: 0.85rem; color: var(--secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 2px; border-radius: 6px; }
         .step-btn { background: #334155; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; }
         .time-val { width: 45px; text-align: center; font-weight: bold; color: var(--accent); }
         .time-val.alert { color: var(--primary); text-decoration: underline; }
 
-        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         .remove-btn { background: #444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
-        .lock-btn { border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
-        .locked { background: #1e293b; color: #64748b; border: 1px solid #475569; }
-        .unlocked { background: var(--accent); color: #000; font-weight: bold; }
+        .reset-mini-btn { background: #475569; color: white; border: none; padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+        .edit-name-btn { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0 5px; font-size: 0.9rem; }
+        
+        .sub-nav { display: flex; gap: 10px; margin-bottom: 15px; }
+        .sub-nav-btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: #94a3b8; font-weight: bold; font-size: 0.8rem; }
+        .sub-nav-btn.active-ally { background: var(--ally); color: #000; border-color: var(--ally); }
+        .sub-nav-btn.active-enemy { background: var(--enemy); color: #fff; border-color: var(--enemy); }
 
         .footer { background: #000; border-top: 2px solid var(--primary); padding: 15px; flex-shrink: 0; }
         .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .action-btn { background: #334155; border: none; color: white; padding: 12px 5px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
         .action-btn.active { background: var(--primary); }
         
-        select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; font-size: 1rem; }
+        input[type="text"], select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -67,7 +73,7 @@
     <div class="header" id="masterClock">00:00:00</div>
     <div class="nav">
         <button id="nav-run" class="nav-btn active" onclick="showTab('run')">⚡ 実行</button>
-        <button id="nav-ally" class="nav-btn" onclick="showTab('ally')">👥 名簿選択</button>
+        <button id="nav-ally" class="nav-btn" onclick="showTab('ally')">👥 名簿管理</button>
         <button id="nav-settings" class="nav-btn" onclick="showTab('settings')">⚙️ 設定</button>
     </div>
     
@@ -81,11 +87,29 @@
         </div>
 
         <div id="tab-ally" class="tab-pane">
-            <div class="title">🏃 参加中メンバー (全拠点の時間設定)</div>
-            <div id="active-list"></div>
-            <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
-            <div class="title">➕ メンバーを追加 (ボンド～順)</div>
-            <div id="master-selection-list"></div>
+            <div class="sub-nav">
+                <button id="sub-nav-ally" class="sub-nav-btn active-ally" onclick="setAllyTab('ally')">味方リスト</button>
+                <button id="sub-nav-enemy" class="sub-nav-btn" onclick="setAllyTab('enemy')">敵リスト</button>
+            </div>
+
+            <div id="ally-view-content">
+                <div class="card">
+                    <div class="title" id="add-member-title">味方を手動追加</div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="manual-name" placeholder="名前を入力" style="margin-bottom:0;">
+                        <button class="add-btn" onclick="addManualMember()">追加</button>
+                    </div>
+                </div>
+                
+                <div class="title">🏃 参加中メンバー (タップで名前変更)</div>
+                <div id="active-list"></div>
+
+                <div id="db-selection-area">
+                    <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
+                    <div class="title">➕ 名簿DBから追加</div>
+                    <div id="master-selection-list"></div>
+                </div>
+            </div>
         </div>
 
         <div id="tab-settings" class="tab-pane">
@@ -96,9 +120,7 @@
                     <option value="砦">砦</option>
                     <option value="要塞">要塞</option>
                 </select>
-                <div id="number-select-area" style="display:none;">
-                    <select id="dest-number"></select>
-                </div>
+                <div id="number-select-area" style="display:none;"><select id="dest-number"></select></div>
                 <button class="add-btn" style="width:100%;" onclick="addDest()">この場所を追加</button>
             </div>
             <div class="card"><div class="title">場所の管理</div><div id="dest-manage-list"></div></div>
@@ -120,15 +142,143 @@
     const MEMBER_DB = {"493212867":{name:"ボンド",key:"b3d2i867"},"492059189":{name:"スミスミ",key:"s2m5i189"},"491154948":{name:"NOBU",key:"n1b5u948"},"491133240":{name:"ユフィ",key:"y1f3u240"},"492271392":{name:"スランバー",key:"s2u7a392"},"492055360":{name:"Do_rucy",key:"d0r5u360"},"491527765":{name:"れふく",key:"r1f2u765"},"492822360":{name:"うめきち",key:"u8k2h260"},"490876270":{name:"うどん",key:"udo270"},"529236482":{name:"テラフレート",key:"t2r3f482"},"490839848":{name:"モモマイ",key:"m0m3a848"},"492658594":{name:"アコー",key:"ako594"},"492132013":{name:"ヤマダタロウ",key:"yam013"},"491137229":{name:"久利生公平",key:"kur229"},"493706541":{name:"Arya",key:"ary541"},"490759416":{name:"guro",key:"gur416"},"493861396":{name:"なーっ",key:"naa396"},"492547880":{name:"miha25",key:"mih880"},"494362543":{name:"muta", key:"mut543"},"491563333":{name:"かねやん",key:"kan333"},"492842337":{name:"Alonso",key:"alo337"},"491787053":{name:"ちゃら男",key:"cha053"},"493183277":{name:"こーちゃん",key:"koo277"},"493645404":{name:"ヘロヘロ",key:"h3l6a404"},"494203981":{name:"wonsang007",key:"won981"},"491300814":{name:"大Beat帝国",key:"dai814"},"497820788":{name:"Ferdinand",key:"fer788"},"492164518":{name:"おこおこ",key:"oko518"},"615629018":{name:"ヒルチャール",key:"hir018"}};
 
     const DEFAULT_TIME = 15;
-    const STORAGE_KEY = 'wos_vExpertPro';
+    const STORAGE_KEY = 'wos_vExpert_ProMax_v1';
+    
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         currentDestIdx: 0,
         destinations: [{ name: "王城", memberTimes: {}, memberLocked: {} }],
-        activeMemberIds: [],
-        enemyRemain: 300
+        activeMembers: [], // {id, name, type: 'ally'|'enemy'}
+        enemyRemain: 300,
+        allyTab: 'ally'
     };
 
     function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+    function setAllyTab(tab) {
+        state.allyTab = tab;
+        const btnA = document.getElementById('sub-nav-ally');
+        const btnE = document.getElementById('sub-nav-enemy');
+        const dbArea = document.getElementById('db-selection-area');
+        const title = document.getElementById('add-member-title');
+
+        if(tab === 'ally') {
+            btnA.className = 'sub-nav-btn active-ally';
+            btnE.className = 'sub-nav-btn';
+            dbArea.style.display = 'block';
+            title.innerText = '味方を手動追加';
+        } else {
+            btnA.className = 'sub-nav-btn';
+            btnE.className = 'sub-nav-btn active-enemy';
+            dbArea.style.display = 'none';
+            title.innerText = '敵を手動追加';
+        }
+        render();
+    }
+
+    function addManualMember() {
+        const nameInput = document.getElementById('manual-name');
+        const name = nameInput.value.trim();
+        if(!name) return;
+        const newId = 'manual_' + Date.now();
+        state.activeMembers.push({ id: newId, name: name, type: state.allyTab });
+        nameInput.value = '';
+        save(); render();
+    }
+
+    function addFromDB(id) {
+        if(state.activeMembers.find(m => m.id === id)) return;
+        state.activeMembers.push({ id: id, name: MEMBER_DB[id].name, type: 'ally' });
+        save(); render();
+    }
+
+    function editName(id) {
+        const m = state.activeMembers.find(x => x.id === id);
+        const newName = prompt("名前を変更:", m.name);
+        if(newName) {
+            m.name = newName;
+            save(); render();
+        }
+    }
+
+    function resetMemberAllTimes(mid) {
+        if(!confirm("このメンバーの全拠点の時間を15sに戻しますか？")) return;
+        state.destinations.forEach(dest => {
+            if(!(dest.memberLocked && dest.memberLocked[mid])) {
+                if(!dest.memberTimes) dest.memberTimes = {};
+                dest.memberTimes[mid] = DEFAULT_TIME;
+            }
+        });
+        save(); render();
+    }
+
+    function render() {
+        const sid = localStorage.getItem('wos_id');
+        if(!sid) return;
+
+        // 実行画面：目的地
+        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
+            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
+        `).join('');
+
+        const currentDest = state.destinations[state.currentDestIdx];
+        document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between; align-items:center;"><b>${currentDest.name}</b><b style="font-size:2.4rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
+
+        // 名簿表示（フィルタリング & ソート）
+        const filteredMembers = state.activeMembers.filter(m => m.type === state.allyTab);
+        
+        // 味方の場合は自分を上、次にDB順。敵は追加順。
+        if(state.allyTab === 'ally') {
+            filteredMembers.sort((a, b) => {
+                if (a.id === sid) return -1; if (b.id === sid) return 1;
+                const idxA = ORDERED_MEMBER_IDS.indexOf(a.id);
+                const idxB = ORDERED_MEMBER_IDS.indexOf(b.id);
+                if(idxA === -1 && idxB === -1) return 0;
+                if(idxA === -1) return 1; if(idxB === -1) return -1;
+                return idxA - idxB;
+            });
+        }
+
+        document.getElementById('active-list').innerHTML = filteredMembers.map(m => `
+            <div class="member-row ${m.type === 'ally' ? 'is-ally' : 'is-enemy'}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center;">
+                        <b style="font-size:1rem;">${m.name}${m.id === sid ? ' (自)' : ''}</b>
+                        <button class="edit-name-btn" onclick="editName('${m.id}')">✏️</button>
+                    </div>
+                    <div>
+                        <button class="reset-mini-btn" onclick="resetMemberAllTimes('${m.id}')">🔄</button>
+                        ${m.id !== sid ? `<button class="remove-btn" onclick="state.activeMembers=state.activeMembers.filter(x=>x.id!=='${m.id}');save();render();">×</button>` : ''}
+                    </div>
+                </div>
+                ${state.destinations.map((dest, dIdx) => {
+                    const time = (dest.memberTimes && dest.memberTimes[m.id]) || DEFAULT_TIME;
+                    const isLocked = dest.memberLocked && dest.memberLocked[m.id];
+                    return `
+                    <div class="dest-time-item">
+                        <div class="dest-label">
+                            <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" style="padding:2px 6px; font-size:0.6rem; border:none; border-radius:3px;" onclick="const d=state.destinations[${dIdx}]; if(!d.memberLocked)d.memberLocked={}; d.memberLocked['${m.id}']=!d.memberLocked['${m.id}']; save(); render();">${isLocked ? '🔒' : '🔓'}</button> ${dest.name}
+                        </div>
+                        <div class="time-ctrl">
+                            <button class="step-btn" onclick="updateTime('${m.id}', ${dIdx}, -1)" ${isLocked ? 'disabled' : ''}>-</button>
+                            <div class="time-val ${time === DEFAULT_TIME ? 'alert' : ''}">${time}s</div>
+                            <button class="step-btn" onclick="updateTime('${m.id}', ${dIdx}, 1)" ${isLocked ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>`).join('');
+
+        // DB選択リスト
+        document.getElementById('master-selection-list').innerHTML = ORDERED_MEMBER_IDS
+            .filter(id => !state.activeMembers.find(m => m.id === id))
+            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; align-items:center; background:none; border:1px solid #334155;">
+                <span>${MEMBER_DB[id].name}</span><button class="add-btn" onclick="addFromDB('${id}')">追加</button>
+            </div>`).join('');
+
+        // 設定画面の場所管理
+        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
+            <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="if(confirm('削除？')){state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();}">削除</button></div>
+        `).join('');
+    }
 
     function updateTime(mid, dIdx, delta) {
         const dest = state.destinations[dIdx];
@@ -140,38 +290,26 @@
         save(); render();
     }
 
-    function toggleLock(mid, dIdx) {
-        const dest = state.destinations[dIdx];
-        if (!dest.memberLocked) dest.memberLocked = {};
-        dest.memberLocked[mid] = !dest.memberLocked[mid];
+    function updateRally(r) {
+        const sid = localStorage.getItem('wos_id');
+        const currentDest = state.destinations[state.currentDestIdx];
+        if (!currentDest.memberRally) currentDest.memberRally = {};
+        currentDest.memberRally[sid] = r;
         save(); render();
     }
 
-    // --- 小窓(PiP)用ロジック ---
+    // --- PiP & Other Utilities (Same as before) ---
     const pipCanvas = document.getElementById('pip-canvas');
     const pipVideo = document.getElementById('pip-video');
     const ctx = pipCanvas.getContext('2d');
-
     async function startPiP() {
         try {
-            const stream = pipCanvas.captureStream(30); 
-            pipVideo.srcObject = stream;
-            pipVideo.muted = true;
-            pipVideo.setAttribute('playsinline', '');
+            const stream = pipCanvas.captureStream(30); pipVideo.srcObject = stream;
             await pipVideo.play();
-
-            if (pipVideo.webkitSupportsPresentationMode && typeof pipVideo.webkitSetPresentationMode === "function") {
-                await pipVideo.webkitSetPresentationMode("picture-in-picture");
-            } else if (pipVideo.requestPictureInPicture) {
-                await pipVideo.requestPictureInPicture();
-            } else {
-                throw new Error("Not Supported");
-            }
-        } catch (err) {
-            alert("小窓表示に失敗しました。HTTPS環境（鍵マーク）であることを確認してください。");
-        }
+            if (pipVideo.requestPictureInPicture) await pipVideo.requestPictureInPicture();
+            else if (pipVideo.webkitSetPresentationMode) await pipVideo.webkitSetPresentationMode("picture-in-picture");
+        } catch (e) { alert("PiP失敗"); }
     }
-
     function updatePipCanvas() {
         ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, 300, 150);
         const timeStr = Math.floor(state.enemyRemain/60) + ":" + (state.enemyRemain%60).toString().padStart(2,'0');
@@ -179,76 +317,12 @@
         ctx.fillText(timeStr, 150, 75);
         requestAnimationFrame(updatePipCanvas);
     }
-
-    // --- メインレンダリング ---
-    function render() {
-        const sid = localStorage.getItem('wos_id');
-        if(!sid) return;
-
-        // 実行画面
-        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
-            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
-        `).join('');
-
-        const currentDest = state.destinations[state.currentDestIdx];
-        document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between;"><b>${currentDest.name}</b><b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
-
-        // 名簿タブ
-        const displayActiveIds = state.activeMemberIds.slice().sort((a, b) => {
-            if (a === sid) return -1; if (b === sid) return 1;
-            return ORDERED_MEMBER_IDS.indexOf(a) - ORDERED_MEMBER_IDS.indexOf(b);
-        });
-
-        document.getElementById('active-list').innerHTML = displayActiveIds.map(mid => {
-            const m = MEMBER_DB[mid];
-            if(!m) return '';
-            return `
-            <div class="member-row" style="${mid === sid ? 'border-left:4px solid var(--accent); background:rgba(74,222,128,0.05);' : ''}">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <b style="font-size:1rem;">${m.name}${mid === sid ? ' (あなた)' : ''}</b>
-                    ${mid !== sid ? `<button class="remove-btn" onclick="state.activeMemberIds=state.activeMemberIds.filter(id=>id!=='${mid}');save();render();">×</button>` : ''}
-                </div>
-                ${state.destinations.map((dest, dIdx) => {
-                    const time = (dest.memberTimes && dest.memberTimes[mid]) || DEFAULT_TIME;
-                    const isDefault = time === DEFAULT_TIME;
-                    const isLocked = dest.memberLocked && dest.memberLocked[mid];
-                    return `
-                    <div class="dest-time-item">
-                        <div class="dest-label">
-                            <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" style="padding:2px 6px; font-size:0.6rem;" onclick="toggleLock('${mid}', ${dIdx})">${isLocked ? '🔒' : '🔓'}</button>
-                            ${dest.name}
-                        </div>
-                        <div class="time-ctrl">
-                            <button class="step-btn" onclick="updateTime('${mid}', ${dIdx}, -1)" ${isLocked ? 'disabled' : ''}>-</button>
-                            <div class="time-val ${isDefault ? 'alert' : ''}">${time}s</div>
-                            <button class="step-btn" onclick="updateTime('${mid}', ${dIdx}, 1)" ${isLocked ? 'disabled' : ''}>+</button>
-                        </div>
-                    </div>`;
-                }).join('')}
-            </div>`;
-        }).join('');
-
-        // メンバー追加
-        document.getElementById('master-selection-list').innerHTML = ORDERED_MEMBER_IDS
-            .filter(id => !state.activeMemberIds.includes(id) && id !== sid)
-            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155; align-items:center;">
-                <span>${MEMBER_DB[id].name}</span>
-                <button class="add-btn" onclick="state.activeMemberIds.push('${id}');save();render();">参加</button>
-            </div>`).join('');
-
-        // 場所管理
-        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
-            <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="if(confirm('削除しますか？')){state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();}">削除</button></div>
-        `).join('');
-
-        // 小窓ボタン表示
-        const pipBtn = document.getElementById('pip-btn');
-        if (document.pictureInPictureEnabled || document.createElement('video').webkitSupportsPresentationMode) {
-            pipBtn.style.display = 'block';
-            pipBtn.onclick = startPiP;
-        }
+    function showTab(t) {
+        document.querySelectorAll('.tab-pane, .nav-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + t).classList.add('active');
+        document.getElementById('nav-' + t).classList.add('active');
+        render();
     }
-
     function toggleDestNumbers() {
         const type = document.getElementById('dest-type').value;
         const area = document.getElementById('number-select-area');
@@ -260,7 +334,6 @@
             for(let i=1; i<=max; i++) select.innerHTML += `<option value="${i}">${i}号</option>`;
         } else { area.style.display = 'none'; }
     }
-
     function addDest() {
         const type = document.getElementById('dest-type').value;
         const num = document.getElementById('dest-number').value;
@@ -268,47 +341,33 @@
         state.destinations.push({ name: name, memberTimes: {}, memberLocked: {} });
         save(); render();
     }
-
     function processAuth() {
         const id = document.getElementById('id-input').value.trim();
         const key = document.getElementById('key-input').value.trim();
         if (MEMBER_DB[id] && MEMBER_DB[id].key === key) {
-            localStorage.setItem('wos_id', id);
-            location.reload();
+            localStorage.setItem('wos_id', id); location.reload();
         } else { alert("認証失敗"); }
-    }
-
-    function showTab(t) {
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tab-' + t).classList.add('active');
-        document.getElementById('nav-' + t).classList.add('active');
-        render();
-    }
-
-    function updateRally(r) {
-        const sid = localStorage.getItem('wos_id');
-        const currentDest = state.destinations[state.currentDestIdx];
-        if (!currentDest.memberRally) currentDest.memberRally = {};
-        currentDest.memberRally[sid] = r;
-        save(); render();
     }
 
     window.onload = () => {
         const sid = localStorage.getItem('wos_id');
         if (!sid) document.getElementById('auth-screen').style.display = 'flex';
         else {
-            if (!state.activeMemberIds.includes(sid)) state.activeMemberIds.unshift(sid);
+            if (!state.activeMembers.find(m => m.id === sid)) {
+                state.activeMembers.unshift({ id: sid, name: MEMBER_DB[sid].name, type: 'ally' });
+            }
             document.getElementById('main-app').style.display = 'flex';
-            toggleDestNumbers();
-            render();
-            updatePipCanvas();
+            render(); updatePipCanvas();
             setInterval(() => {
                 if(state.enemyRemain > 0) state.enemyRemain--;
                 document.getElementById('masterClock').innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false});
                 const td = document.getElementById('time-display');
                 if(td) td.innerText = Math.floor(state.enemyRemain/60) + ":" + (state.enemyRemain%60).toString().padStart(2,'0');
             }, 1000);
+            if (document.pictureInPictureEnabled || document.createElement('video').webkitSupportsPresentationMode) {
+                document.getElementById('pip-btn').style.display = 'block';
+                document.getElementById('pip-btn').onclick = startPiP;
+            }
         }
     };
 </script>
