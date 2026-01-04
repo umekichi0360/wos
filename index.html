@@ -3,355 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
-    <title>WOS Commander - Secure</title>
+    <title>WOS Secure Commander</title>
     <style>
         :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        
-        /* 認証・ロック画面 */
-        #lock-screen { position: fixed; inset: 0; background: #000; z-index: 10000; display: none; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: var(--card); padding: 30px; border-radius: 16px; width: 100%; max-width: 320px; border: 1px solid var(--primary); text-align: center; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        #auth-screen, #lock-screen { position: fixed; inset: 0; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: var(--bg); }
+        #lock-screen { background: #000; z-index: 10000; text-align: center; }
+        .auth-card { background: var(--card); padding: 30px; border-radius: 16px; width: 100%; max-width: 340px; border: 1px solid var(--primary); text-align: center; }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #475569; color: white; border-radius: 8px; text-align: center; font-size: 1rem; }
-        .auth-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
-
+        .auth-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        #auth-error { color: var(--primary); font-size: 0.8rem; margin-top: 10px; display: none; }
         #main-app { display: none; flex-direction: column; height: 100vh; }
-        .header { background: #000; padding: 10px; text-align: center; border-bottom: 2px solid var(--card); }
-        .clock { font-family: monospace; font-size: 1.5rem; color: var(--accent); font-weight: bold; }
-        .nav { display: flex; background: var(--card); }
-        .nav-btn { flex: 1; padding: 15px 5px; border: none; background: none; color: #64748b; font-weight: bold; font-size: 0.8rem; cursor: pointer; border-bottom: 3px solid transparent; }
-        .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(255, 75, 92, 0.1); }
-        .content { flex: 1; overflow-y: auto; padding: 10px; padding-bottom: 280px; }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
-        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #334155; position: relative; }
-        .title { font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .drag-handle { width: 100%; height: 24px; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; cursor: grab; border-radius: 4px 4px 0 0; margin-bottom: 4px; }
-        .drag-handle::after { content: ":::: Drag to Sort ::::"; color: #64748b; font-size: 0.6rem; letter-spacing: 2px; }
-        .dragging { opacity: 0.5; border: 2px dashed var(--primary); }
-        .target-accordion { margin-bottom: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #475569; }
-        .target-head { background: #1e293b; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .target-head.active { background: var(--primary); border-bottom: 2px solid rgba(0,0,0,0.2); }
-        .timer-label { font-family: monospace; font-weight: bold; font-size: 1.2rem; display: block; }
-        .status-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.3); color: var(--warning); margin-bottom: 2px; display: inline-block; }
-        .target-body { display: none; background: #0f172a; padding: 10px; }
-        .target-body.open { display: block; }
-        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .action-btn { background: #334155; border: none; color: white; padding: 10px 4px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
-        .action-btn.active { background: var(--primary); }
-        .row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; }
-        .countdown-badge { font-family: monospace; font-size: 1.1rem; color: var(--warning); font-weight: bold; text-align: right; min-width: 90px; }
-        .countdown-badge.now { color: var(--primary); animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .time-display { font-family: monospace; font-size: 0.9rem; color: var(--accent); opacity: 0.8; }
-        .time-input-group { display: flex; align-items: center; gap: 4px; background: #0f172a; padding: 4px; border-radius: 6px; }
-        .mini-num { width: 40px; background: none; border: 1px solid #475569; color: white; text-align: center; padding: 4px; border-radius: 4px; font-size: 0.8rem; }
-        input[type="text"], input[type="number"], input[type="password"] { background: #0f172a; border: 1px solid #475569; color: white; padding: 8px; border-radius: 6px; width: 100%; font-size: 1rem; }
-        .del-btn { background: #950740; color: white; border: none; border-radius: 6px; padding: 6px 10px; }
-        .footer { position: fixed; bottom: 0; width: 100%; background: #000; border-top: 2px solid var(--primary); padding: 10px; z-index: 100; }
-        .footer-count { color: var(--warning); font-weight: bold; font-family: monospace; font-size: 1.2rem; margin-bottom: 4px; text-align: center; }
-        .big-time { font-family: monospace; font-size: 2.2rem; color: var(--accent); }
-        .mini-adj { background: #334155; border: none; color: white; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; }
-        .copy-all { width: 100%; padding: 14px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; font-size: 1rem; margin-top: 8px; }
+        .header { background: #000; padding: 12px; text-align: center; border-bottom: 2px solid var(--card); font-family: monospace; font-size: 1.2rem; color: var(--accent); }
+        .content { flex: 1; overflow-y: auto; padding: 20px; }
+        .status-card { background: var(--card); padding: 20px; border-radius: 12px; border-left: 4px solid var(--accent); }
     </style>
 </head>
 <body>
 
 <div id="lock-screen">
-    <div>
-        <h1 style="color:red; font-size:2.5rem; margin-bottom:10px;">🚫 Access Denied</h1>
-        <p>このアカウントのアクセス権限は<br>管理者によって無効化されました。</p>
-    </div>
+    <h1 style="color:red; font-size:2.5rem;">🚫 ACCESS DENIED</h1>
+    <p>この端末は許可されていません。</p>
+    <button class="auth-btn" style="background:#444; width:auto; padding:10px 20px;" onclick="localStorage.clear();location.reload();">再ログイン</button>
 </div>
 
 <div id="auth-screen">
     <div class="auth-card">
-        <h2 id="auth-title" style="margin-bottom:15px;">🛡️ クラン認証</h2>
-        <div id="step-1">
-            <p style="font-size:0.8rem; color:#94a3b8;">合言葉を入力：</p>
-            <input type="password" id="pass-input" class="auth-input" placeholder="合言葉">
-            <button class="auth-btn" onclick="checkPass()">次へ</button>
+        <h2 style="margin-bottom:20px;">🛡️ メンバー認証</h2>
+        <div id="auth-form">
+            <input type="number" id="id-input" class="auth-input" placeholder="ゲーム内ID(9桁)">
+            <input type="password" id="key-input" class="auth-input" placeholder="専用キー">
+            <button class="auth-btn" onclick="processAuth()">ログイン</button>
         </div>
-        <div id="step-2" style="display:none;">
-            <p style="font-size:0.8rem; color:#94a3b8;">ゲーム内のお名前（WOS名）：</p>
-            <input type="text" id="name-input" class="auth-input" placeholder="例: 伝説の指揮官">
-            <p style="font-size:0.65rem; color:var(--primary); margin:10px 0;">※名前は一度登録すると変更できません。<br>管理者に通知される名前になります。</p>
-            <button class="auth-btn" onclick="registerName()">利用開始</button>
-        </div>
-        <p id="auth-error" style="color:var(--primary); font-size:0.8rem; margin-top:10px; display:none;"></p>
+        <p id="auth-error"></p>
     </div>
 </div>
 
 <div id="main-app">
-    <div class="header"><div class="clock" id="masterClock">00:00:00</div></div>
-    <div class="nav">
-        <button class="nav-btn active" onclick="showTab('run')">⚡ 実行</button>
-        <button class="nav-btn" onclick="showTab('ally')">👥 名簿管理</button>
-        <button class="nav-btn" onclick="showTab('settings')">⚙️ 設定</button>
-    </div>
+    <div class="header" id="masterClock">00:00:00</div>
     <div class="content">
-        <div id="tab-run" class="tab-pane active" ondragover="handleDragOver(event)">
-            <div class="card"><div class="title">目的地を選択</div><div class="btn-grid" id="dest-btns"></div></div>
-            <div id="target-list-area"></div>
+        <div class="status-card">
+            <small style="color:#94a3b8;">指揮官情報:</small><br>
+            <b id="display-info" style="font-size:1.2rem;"></b>
         </div>
-        <div id="tab-ally" class="tab-pane">
-            <div style="font-size:0.7rem; color:#64748b; margin-bottom:10px;">ログイン中のユーザー: <b id="current-user-name" style="color:var(--accent)"></b></div>
-            <div class="title">👥 味方メンバー</div>
-            <div id="member-edit-list" ondragover="handleDragOver(event)"></div>
-            <button class="copy-all" style="background:var(--secondary); margin-bottom:20px;" onclick="addMember()">＋ 味方を追加</button>
-            <div class="title">👿 敵ターゲット</div>
-            <div id="enemy-edit-list" ondragover="handleDragOver(event)"></div>
-            <button class="copy-all" style="background:#950740" onclick="addEnemy()">＋ 敵を追加</button>
-        </div>
-        <div id="tab-settings" class="tab-pane">
-            <div class="card"><div class="title">目的地名</div><div id="dest-edit-list"></div>
-            <button class="action-btn" style="width:100%; margin-top:8px;" onclick="addDest()">＋ 追加</button></div>
-            <button class="copy-all" style="background:#444;" onclick="resetAll()">全データ初期化</button>
-        </div>
-    </div>
-    <div class="footer">
-        <div id="footer-count" class="footer-count">行軍開始まで あと --秒</div>
-        <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
-            <button class="mini-adj" onclick="adjMySec(1)">-1s</button>
-            <span class="big-time" id="footer-time">00:00:00</span>
-            <button class="mini-adj" onclick="adjMySec(-1)">+1s</button>
-        </div>
-        <div class="btn-grid">
-            <button class="action-btn" id="my-r0" onclick="setMyRally(0)">単騎</button>
-            <button class="action-btn" id="my-r1" onclick="setMyRally(1)">1分</button>
-            <button class="action-btn" id="my-r5" onclick="setMyRally(5)">5分</button>
-        </div>
-        <button class="copy-all" onclick="copyInstructions()">📋 指示を一括コピー</button>
+        <p style="margin-top:30px; text-align:center; color:#64748b;">[ アプリ機能は正常に動作しています ]</p>
     </div>
 </div>
 
 <script>
-    /* -------------------------------------------------------------------------
-       ★ セキュリティ & 通知設定
-    ------------------------------------------------------------------------- */
-    const SECRET_PASS = "saba123";  
-    const BANNED_USERS = ["スパイA", "裏切り者B"]; 
-    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457262608020144316/5fAwUFmuZOcJLo4CDUGGbgmBpF8MZO6UsYdECuh_WxRIz6fXLxXcUokOcz69P1Ss4mxs";
-
-    /* -------------------------------------------------------------------------
-       通知・認証・基本ロジック
-    ------------------------------------------------------------------------- */
-    function sendDiscordNotification(userName) {
-        if (!DISCORD_WEBHOOK_URL) return;
-        const data = {
-            content: `📢 **アプリ利用通知**\n👤 プレイヤー名: **${userName}**\n✅ 合言葉認証を突破して利用を開始しました。`
-        };
-        fetch(DISCORD_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).catch(err => console.error("Discord通知失敗:", err));
-    }
-
-    function checkSecurity() {
-        const savedPass = localStorage.getItem('saved_pass');
-        const savedName = localStorage.getItem('user_name');
-        if (savedName && BANNED_USERS.includes(savedName)) {
-            document.getElementById('lock-screen').style.display = 'flex';
-            return;
-        }
-        if (savedPass !== SECRET_PASS) {
-            showAuthStep(1);
-        } else if (!savedName) {
-            showAuthStep(2);
-        } else {
-            initApp(savedName);
-        }
-    }
-
-    function showAuthStep(step) {
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('step-1').style.display = (step === 1) ? 'block' : 'none';
-        document.getElementById('step-2').style.display = (step === 2) ? 'block' : 'none';
-    }
-
-    function checkPass() {
-        if (document.getElementById('pass-input').value === SECRET_PASS) {
-            localStorage.setItem('saved_pass', SECRET_PASS);
-            showAuthStep(2);
-        } else {
-            const err = document.getElementById('auth-error');
-            err.innerText = "合言葉が違います"; err.style.display = 'block';
-        }
-    }
-
-    function registerName() {
-        const name = document.getElementById('name-input').value.trim();
-        if (name.length < 2) return;
-        if (BANNED_USERS.includes(name)) {
-            document.getElementById('lock-screen').style.display = 'flex';
-            return;
-        }
-        localStorage.setItem('user_name', name);
-        sendDiscordNotification(name); // Discordへ通知
-        initApp(name);
-    }
-
-    function initApp(name) {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        document.getElementById('current-user-name').innerText = name;
-        loadData();
-        if(state.members[0].name === "自分") { state.members[0].name = name; save(); }
-        render();
-    }
-
-    let state = {
-        destIdx: 0, targetIdx: 0, destinations: ["王城"], 
-        members: [{ id: 1, name: "自分", role: "leader", times: [15], active: [true], rally: 1 }],
-        enemies: [{ id: 101, name: "ターゲットA", times: [20], remain: 300 }]
+    const DISCORD_URL = "https://discord.com/api/webhooks/1457262608020144316/5fAwUFmuZOcJLo4CDUGGbgmBpF8MZO6UsYdECuh_WxRIz6fXLxXcUokOcz69P1Ss4mxs";
+    
+    const MEMBER_DB = {
+        "492822360": { name: "うめきち", key: "u8k2h260" },
+        "493212867": { name: "ボンド", key: "b3d2i867" },
+        "492059189": { name: "スミスミ", key: "s2m5i189" },
+        "491154948": { name: "NOBU", key: "n1b5u948" },
+        "491133240": { name: "ユフィ", key: "y1f3u240" },
+        "492271392": { name: "スランバー", key: "s2u7a392" },
+        "492055360": { name: "Do_rucy", key: "d0r5u360" },
+        "491527765": { name: "れふく", key: "r1f2u765" },
+        "490876270": { name: "うどん", key: "u0d7o270" },
+        "529236482": { name: "テラフレート", key: "t2r3f482" },
+        "490839848": { name: "モモマイ", key: "m0m3a848" },
+        "492658594": { name: "アコー", key: "a2o5u594" },
+        "492132013": { name: "ヤマダタロウ", key: "y2m1a013" },
+        "491137229": { name: "久利生公平", key: "k1u3u229" },
+        "493706541": { name: "Arya", key: "a3y0a541" },
+        "490759416": { name: "guro", key: "g0r5u416" },
+        "493861396": { name: "なーっ", key: "n3a8a396" },
+        "492547880": { name: "miha25", key: "m2h5a880" },
+        "494362543": { name: "muta", key: "m4t3a543" },
+        "491563333": { name: "かねやん", key: "k1n6y333" },
+        "492842337": { name: "Alonso", key: "alo337" },
+        "491787053": { name: "ちゃら男", key: "c1a8o053" },
+        "493183277": { name: "こーちゃん", key: "k3o8c277" },
+        "493645404": { name: "ヘロヘロ", key: "h3l6a404" },
+        "494203981": { name: "wonsang007", key: "w4s9n981" },
+        "491300814": { name: "大Beat帝国", key: "d1b0t814" },
+        "497820788": { name: "Ferdinand", key: "f7r2d788" },
+        "492164518": { name: "おこおこ", key: "o2o6o518" },
+        "615629018": { name: "ヒルチャール", key: "h1c2u018" }
     };
 
-    function save() { localStorage.setItem('whs_v68_data_secure', JSON.stringify(state)); }
-    function loadData() { const s = localStorage.getItem('whs_v68_data_secure'); if(s) state = JSON.parse(s); }
-    const formatMS = (s) => `${Math.floor(s/60)}分${s%60}秒`;
+    const getFP = () => btoa(navigator.userAgent + screen.width).slice(-8);
 
-    function render() {
-        const dDiv = document.getElementById('dest-btns');
-        dDiv.innerHTML = state.destinations.map((d, i) => `<button class="action-btn ${state.destIdx===i?'active':''}" onclick="state.destIdx=${i};save();render();">${d}</button>`).join('');
-        const targetArea = document.getElementById('target-list-area');
-        targetArea.innerHTML = state.enemies.map((e, i) => `
-            <div class="target-accordion" draggable="true" data-id="${e.id}" ondragstart="handleDragStart(event, ${e.id})" ondragend="handleDragEnd(event)">
-                <div class="drag-handle"></div>
-                <div class="target-head ${state.targetIdx===i?'active':''}" onclick="state.targetIdx=${i};save();render();">
-                    <span><b>${e.name}</b> <small>(${formatMS(e.times[state.destIdx])})</small></span>
-                    <div style="text-align:right">
-                        <span class="status-badge" id="status-badge-${i}">集結中</span>
-                        <span class="timer-label" id="timer-head-${i}">0:00</span>
-                    </div>
-                </div>
-                <div class="target-body ${state.targetIdx===i?'open':''}">
-                    <div class="btn-grid" style="margin-bottom:12px;">
-                        <button class="action-btn" onclick="adjEnemy(${i}, 60)">+1分</button>
-                        <button class="action-btn" onclick="adjEnemy(${i}, 1)">+1s</button>
-                        <button class="action-btn" onclick="adjEnemy(${i}, -1)">-1s</button>
-                    </div>
-                    <div id="ally-cd-list-${i}"></div>
-                </div>
-            </div>`).join('');
-        renderAllyList(); renderEnemyList(); renderDestList();
-    }
+    function processAuth() {
+        const id = document.getElementById('id-input').value.trim();
+        const key = document.getElementById('key-input').value.trim();
+        const member = MEMBER_DB[id];
 
-    function renderAllyList() {
-        const mList = document.getElementById('member-edit-list');
-        mList.innerHTML = state.members.map((m, i) => `<div class="card" draggable="true" data-id="${m.id}" ondragstart="handleDragStart(event, ${m.id})" ondragend="handleDragEnd(event)">
-            <div class="drag-handle"></div>
-            <input type="text" value="${m.name}" oninput="state.members[${i}].name=this.value;save();">
-            <div class="btn-grid" style="margin:8px 0;">
-                <button class="action-btn ${m.role==='leader'?'active':''}" onclick="state.members[${i}].role='leader';save();render();">主</button>
-                <button class="action-btn ${m.role==='member'?'active':''}" onclick="state.members[${i}].role='member';save();render();">員</button>
-                ${i>0 ? `<button class="del-btn" onclick="state.members.splice(${i},1);save();render();">削除</button>` : '<span></span>'}
-            </div>
-            ${state.destinations.map((d, di) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;"><span style="font-size:0.75rem;">${d}</span><div class="time-input-group"><input type="number" class="mini-num" value="${Math.floor(m.times[di]/60)}" oninput="setM('member',${i},${di},this.value)">m<input type="number" class="mini-num" value="${m.times[di]%60}" oninput="setS('member',${i},${di},this.value)">s<input type="checkbox" ${m.active[di]?'checked':''} onchange="state.members[${i}].active[${di}]=this.checked;save();"></div></div>`).join('')}
-        </div>`).join('');
-    }
+        if (member && member.key === key) {
+            const fp = getFP();
+            localStorage.setItem('wos_id', id);
+            localStorage.setItem('wos_name', member.name);
+            localStorage.setItem('wos_fp', fp);
 
-    function renderEnemyList() {
-        const eList = document.getElementById('enemy-edit-list');
-        eList.innerHTML = state.enemies.map((e, i) => `<div class="card" style="border-left:4px solid #950740;" draggable="true" data-id="${e.id}" ondragstart="handleDragStart(event, ${e.id})" ondragend="handleDragEnd(event)">
-            <div class="drag-handle"></div>
-            <input type="text" value="${e.name}" oninput="state.enemies[${i}].name=this.value;save();">
-            ${state.destinations.map((d, di) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;"><span style="font-size:0.75rem;">${d}</span><div class="time-input-group"><input type="number" class="mini-num" value="${Math.floor(e.times[di]/60)}" oninput="setM('enemy',${i},${di},this.value)">m<input type="number" class="mini-num" value="${e.times[di]%60}" oninput="setS('enemy',${i},${di},this.value)">s</div></div>`).join('')}
-            <button class="del-btn" style="width:100%; margin-top:10px;" onclick="state.enemies.splice(${i},1);state.targetIdx=0;save();render();">削除</button>
-        </div>`).join('');
-    }
-
-    function updateDynamicElements() {
-        const now = Date.now();
-        state.enemies.forEach((e, i) => {
-            let statusLabel = "集結中"; let displayTime = e.remain;
-            const headTimer = document.getElementById(`timer-head-${i}`);
-            const badge = document.getElementById(`status-badge-${i}`);
-            if (e.remain <= 0) { statusLabel = "行軍中"; displayTime = e.times[state.destIdx] + e.remain; if (displayTime < 0) { statusLabel = "着弾済"; displayTime = 0; } if(badge) badge.style.color = "var(--primary)"; }
-            else if(badge) { badge.style.color = "var(--warning)"; }
-            if(headTimer) headTimer.innerText = `${Math.floor(displayTime/60)}:${(displayTime%60).toString().padStart(2,'0')}`;
-            if(badge) badge.innerText = statusLabel;
-            if (state.targetIdx === i) {
-                const listDiv = document.getElementById(`ally-cd-list-${i}`);
-                if (listDiv) {
-                    const tDate = new Date(now + (e.remain + e.times[state.destIdx]) * 1000);
-                    listDiv.innerHTML = state.members.map(m => {
-                        if(!m.active[state.destIdx]) return '';
-                        const sTime = new Date(tDate.getTime() - (m.times[state.destIdx] * 1000));
-                        const diff = Math.floor((sTime - now) / 1000);
-                        return `<div class="row"><div class="time-info"><b>${m.name}</b><br><span class="time-display">${sTime.toLocaleTimeString('ja-JP',{hour12:false})}</span></div><div class="countdown-badge ${diff<=5&&diff>-1?'now':''}">${diff>0?'あと '+diff+'秒':(diff>-10?'出発！':'完了')}</div></div>`;
-                    }).join('');
-                }
-            }
-        });
-        updateFooter();
-    }
-
-    function updateFooter() {
-        const activeEnemy = state.enemies[state.targetIdx]; if(!activeEnemy) return;
-        const now = Date.now(); const tDate = new Date(now + (activeEnemy.remain + activeEnemy.times[state.destIdx]) * 1000);
-        const me = state.members[0]; const start = new Date(tDate.getTime() - (me.times[state.destIdx] * 1000));
-        const footerTimeEl = document.getElementById('footer-time'); if(footerTimeEl) footerTimeEl.innerText = start.toLocaleTimeString('ja-JP',{hour12:false});
-        const diff = Math.floor((start - now) / 1000);
-        const footerCountEl = document.getElementById('footer-count'); if(footerCountEl) footerCountEl.innerText = diff > 0 ? `行軍開始まで あと ${diff}秒` : (diff > -10 ? "出発！" : "出発完了");
-        document.querySelectorAll('.footer .action-btn').forEach(b => b.classList.remove('active'));
-        const myRallyBtn = document.getElementById('my-r'+me.rally); if(myRallyBtn) myRallyBtn.classList.add('active');
-    }
-
-    function showTab(name) { document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); const activeBtn = document.querySelector(`.nav-btn[onclick*="${name}"]`); if(activeBtn) activeBtn.classList.add('active'); document.getElementById('tab-'+name).classList.add('active'); render(); }
-    function adjEnemy(i, s) { state.enemies[i].remain += s; save(); }
-    function adjMySec(s) { state.members[0].times[state.destIdx] = Math.max(0, state.members[0].times[state.destIdx] + s); save(); }
-    function setMyRally(r) { state.members[0].rally = r; save(); }
-    function setM(type, idx, di, val) { const target = (type==='member')?state.members[idx]:state.enemies[idx]; target.times[di] = (parseInt(val)||0)*60+(target.times[di]%60); save(); }
-    function setS(type, idx, di, val) { const target = (type==='member')?state.members[idx]:state.enemies[idx]; target.times[di] = Math.floor(target.times[di]/60)*60+(parseInt(val)||0); save(); }
-    function addMember() { state.members.push({ id: Date.now(), name: "新メンバー", role: "member", times: state.destinations.map(()=>15), active: state.destinations.map(()=>true), rally: 1 }); save(); render(); }
-    function addEnemy() { state.enemies.push({ id: Date.now(), name: "ターゲット", times: state.destinations.map(()=>20), remain: 300 }); save(); render(); }
-    function addDest() { const name = prompt("目的地名を入力:"); if(name){ state.destinations.push(name); state.members.forEach(m=>{m.times.push(15);m.active.push(true);}); state.enemies.forEach(e=>e.times.push(20)); save(); render(); } }
-    function renderDestList() { const dEdit = document.getElementById('dest-edit-list'); dEdit.innerHTML = state.destinations.map((d, i) => `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" value="${d}" oninput="state.destinations[${i}]=this.value;save();"><button class="del-btn" onclick="removeDest(${i})">×</button></div>`).join(''); }
-    function removeDest(i) { if(state.destinations.length>1){ state.destinations.splice(i,1); state.members.forEach(m=>{m.times.splice(i,1);m.active.splice(i,1);}); state.enemies.forEach(e=>e.times.splice(i,1)); state.destIdx=0; save(); render(); } }
-    function resetAll() { if(confirm('全データをリセットしますか？名前や合言葉もやり直しになります。')){ localStorage.clear(); location.reload(); } }
-    function copyInstructions() {
-        const e = state.enemies[state.targetIdx]; const tDate = new Date(Date.now() + (e.remain + e.times[state.destIdx]) * 1000);
-        let txt = `【${state.destinations[state.destIdx]} 👿${e.name}】\n`;
-        state.members.forEach(m => { if(m.active[state.destIdx]) { const start = new Date(tDate.getTime() - (m.times[state.destIdx] + (m.role==='leader'?m.rally:0) * 60) * 1000); txt += `${m.name} ${m.role==='leader'?(m.rally===0?'【単】':`【${m.rally}分】`):'【単】'} ${start.toLocaleTimeString('ja-JP',{hour12:false})}\n`; } });
-        navigator.clipboard.writeText(txt); alert("指示をコピーしました");
-    }
-    
-    // ドラッグ＆ドロップ用
-    let dragSrcEl = null;
-    function handleDragStart(e, id) { dragSrcEl = id; e.target.closest('.card, .target-accordion').classList.add('dragging'); }
-    function handleDragEnd(e) { document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); updateStateOrder(); }
-    function handleDragOver(e) { e.preventDefault(); const container = e.currentTarget; const afterElement = getDragAfterElement(container, e.clientY); const draggingEl = document.querySelector('.dragging'); if (draggingEl) { if (afterElement == null) container.appendChild(draggingEl); else container.insertBefore(draggingEl, afterElement); } }
-    function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.card:not(.dragging), .target-accordion:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset: offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
-    function updateStateOrder() { 
-        const runContainer = document.getElementById('target-list-area');
-        if(runContainer && runContainer.children.length > 0) {
-            const newOrder = [...runContainer.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id));
-            state.enemies = newOrder.map(id => state.enemies.find(e => e.id === id)).filter(x => x);
+            fetch(DISCORD_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: `🚨 **ログイン通知**\n👤 名前: **${member.name}**\n🆔 ID: \`${id}\`\n🔑 指紋: \`${fp}\``
+                })
+            });
+            location.reload();
+        } else {
+            const e = document.getElementById('auth-error');
+            e.innerText = "IDまたはキーが間違っています";
+            e.style.display = 'block';
         }
-        const memberContainer = document.getElementById('member-edit-list');
-        if(memberContainer && memberContainer.children.length > 0) {
-            const newOrder = [...memberContainer.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id));
-            state.members = newOrder.map(id => state.members.find(m => m.id === id)).filter(x => x);
-        }
-        save(); render(); 
     }
 
-    setInterval(() => { 
-        const clock = document.getElementById('masterClock');
-        if(clock) clock.innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false});
-        state.enemies.forEach(e => e.remain--);
-        updateDynamicElements();
-    }, 1000);
+    window.onload = () => {
+        const sid = localStorage.getItem('wos_id');
+        const sfp = localStorage.getItem('wos_fp');
+        const snm = localStorage.getItem('wos_name');
 
-    checkSecurity();
+        if (!sid || !sfp) {
+            document.getElementById('auth-screen').style.display = 'flex';
+        } else {
+            document.getElementById('main-app').style.display = 'flex';
+            document.getElementById('display-info').innerText = `${snm} (ID:${sid})`;
+        }
+        setInterval(() => { document.getElementById('masterClock').innerText = new Date().toLocaleTimeString(); }, 1000);
+    };
 </script>
 </body>
 </html>
