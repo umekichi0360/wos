@@ -27,26 +27,30 @@
         .title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
         
         .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
-        .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; border: 1px solid #475569; }
-        .row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; }
         
-        .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 4px; border-radius: 6px; }
-        .step-btn { background: #334155; color: white; border: none; width: 30px; height: 30px; border-radius: 4px; font-weight: bold; }
-        .time-val { width: 50px; text-align: center; font-weight: bold; color: var(--accent); }
+        /* 複数場所の設定エリア */
+        .dest-time-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .dest-time-item:last-child { border-bottom: none; }
+        .dest-label { font-size: 0.85rem; color: var(--secondary); flex: 1; }
+
+        .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 2px; border-radius: 6px; }
+        .step-btn { background: #334155; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; font-weight: bold; font-size: 1rem; }
+        .time-val { width: 45px; text-align: center; font-weight: bold; color: var(--accent); }
         .time-val.alert { color: var(--primary); text-decoration: underline; }
 
-        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; }
-        .remove-btn { background: #444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; }
-        .lock-btn { border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; margin-right: 5px; }
+        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .remove-btn { background: #444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+        .lock-btn { border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
         .locked { background: #1e293b; color: #64748b; border: 1px solid #475569; }
         .unlocked { background: var(--accent); color: #000; font-weight: bold; }
 
         .footer { background: #000; border-top: 2px solid var(--primary); padding: 15px; flex-shrink: 0; }
         .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .action-btn { background: #334155; border: none; color: white; padding: 12px 5px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
+        .action-btn { background: #334155; border: none; color: white; padding: 12px 5px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
         .action-btn.active { background: var(--primary); }
         
-        select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; }
+        select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -75,9 +79,10 @@
         </div>
 
         <div id="tab-ally" class="tab-pane">
+            <div class="title">🏃 参加中メンバー (全拠点の時間設定)</div>
             <div id="active-list"></div>
             <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
-            <div class="title">➕ メンバーを追加 (ボンド以降)</div>
+            <div class="title">➕ メンバーを追加 (ボンド～順)</div>
             <div id="master-selection-list"></div>
         </div>
 
@@ -95,7 +100,7 @@
                 <button class="add-btn" style="width:100%;" onclick="addDest()">この場所を追加</button>
             </div>
             <div class="card"><div class="title">場所の管理</div><div id="dest-manage-list"></div></div>
-            <button class="action-btn" style="width:100%; background:#444;" onclick="localStorage.clear();location.reload();">ログアウト</button>
+            <button class="action-btn" style="width:100%; background:#444;" onclick="if(confirm('ログアウトしますか？')){localStorage.clear();location.reload();}">ログアウト</button>
         </div>
     </div>
 
@@ -113,7 +118,7 @@
         "493212867": { name: "ボンド", key: "b3d2i867" }, "492059189": { name: "スミスミ", key: "s2m5i189" },
         "491154948": { name: "NOBU", key: "n1b5u948" }, "491133240": { name: "ユフィ", key: "y1f3u240" },
         "492271392": { name: "スランバー", key: "s2u7a392" }, "492055360": { name: "Do_rucy", key: "d0r5u360" },
-        "492822360": { name: "うめきち", key: "u8k2h260" }, "491527765": { name: "れふく", key: "r1f2u765" },
+        "491527765": { name: "れふく", key: "r1f2u765" }, "492822360": { name: "うめきち", key: "u8k2h260" },
         "490876270": { name: "うどん", key: "udo270" }, "529236482": { name: "テラフレート", key: "t2r3f482" },
         "490839848": { name: "モモマイ", key: "m0m3a848" }, "492658594": { name: "アコー", key: "ako594" },
         "492132013": { name: "ヤマダタロウ", key: "yam013" }, "491137229": { name: "久利生公平", key: "kur229" },
@@ -122,23 +127,99 @@
         "494362543": { name: "muta", key: "mut543" }, "491563333": { name: "かねやん", key: "kan333" },
         "492842337": { name: "Alonso", key: "alo337" }, "491787053": { name: "ちゃら男", key: "cha053" },
         "493183277": { name: "こーちゃん", key: "koo277" }, "493645404": { name: "ヘロヘロ", key: "h3l6a404" },
-        "494203981": { name: "wonsang007", key: "won981" }, "491300814": { name: "大Beat帝国", key: "dai814" }, 
-        "497820788": { name: "Ferdinand", key: "fer788" }, "492164518": { name: "おこおこ", key: "oko518" }, 
+        "494203981": { name: "wonsang007", key: "won981" }, "491300814": { name: "大Beat帝国", key: "dai814" },
+        "497820788": { name: "Ferdinand", key: "fer788" }, "492164518": { name: "おこおこ", key: "oko518" },
         "615629018": { name: "ヒルチャール", key: "hir018" }
     };
 
-    // 初期値: 0分15秒
     const DEFAULT_TIME = 15;
-
-    let state = JSON.parse(localStorage.getItem('wos_v10')) || {
+    let state = JSON.parse(localStorage.getItem('wos_v13')) || {
         currentDestIdx: 0,
         destinations: [{ name: "王城", memberTimes: {}, memberLocked: {} }],
         activeMemberIds: [],
         enemyRemain: 300
     };
 
-    function save() { localStorage.setItem('wos_v10', JSON.stringify(state)); }
+    function save() { localStorage.setItem('wos_v13', JSON.stringify(state)); }
 
+    function updateTime(mid, destIdx, delta) {
+        const dest = state.destinations[destIdx];
+        if (dest.memberLocked && dest.memberLocked[mid]) return;
+        let t = dest.memberTimes[mid] || DEFAULT_TIME;
+        t = Math.max(0, t + delta);
+        dest.memberTimes[mid] = t;
+        save(); render();
+    }
+
+    function toggleLock(mid, destIdx) {
+        const dest = state.destinations[destIdx];
+        if (!dest.memberLocked) dest.memberLocked = {};
+        dest.memberLocked[mid] = !dest.memberLocked[mid];
+        save(); render();
+    }
+
+    function render() {
+        const sid = localStorage.getItem('wos_id');
+        if(!sid) return;
+
+        // 実行タブ用
+        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
+            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
+        `).join('');
+
+        const currentDest = state.destinations[state.currentDestIdx];
+        document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between;"><b>${currentDest.name}</b><b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
+
+        // 名簿選択タブ：参加中メンバーの全拠点設定
+        const orderedIds = Object.keys(MEMBER_DB);
+        const displayActiveIds = state.activeMemberIds.slice().sort((a, b) => {
+            if (a === sid) return -1; if (b === sid) return 1;
+            return orderedIds.indexOf(a) - orderedIds.indexOf(b);
+        });
+
+        document.getElementById('active-list').innerHTML = displayActiveIds.map(mid => {
+            const m = MEMBER_DB[mid];
+            return `
+            <div class="member-row" style="${mid === sid ? 'border-left:4px solid var(--accent); background:rgba(74,222,128,0.05);' : ''}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <b style="font-size:1rem;">${m.name}${mid === sid ? ' (あなた)' : ''}</b>
+                    ${mid !== sid ? `<button class="remove-btn" onclick="state.activeMemberIds=state.activeMemberIds.filter(id=>id!=='${mid}');save();render();">×</button>` : ''}
+                </div>
+                ${state.destinations.map((dest, dIdx) => {
+                    const time = dest.memberTimes[mid] || DEFAULT_TIME;
+                    const isDefault = time === DEFAULT_TIME;
+                    const isLocked = dest.memberLocked && dest.memberLocked[mid];
+                    return `
+                    <div class="dest-time-item">
+                        <div class="dest-label">
+                            <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" style="padding:2px 6px; font-size:0.6rem;" onclick="toggleLock('${mid}', ${dIdx})">${isLocked ? '🔓' : '🔒'}</button>
+                            ${dest.name}
+                        </div>
+                        <div class="time-ctrl">
+                            <button class="step-btn" onclick="updateTime('${mid}', ${dIdx}, -1)" ${isLocked ? 'disabled' : ''}>-</button>
+                            <div class="time-val ${isDefault ? 'alert' : ''}">${time}s</div>
+                            <button class="step-btn" onclick="updateTime('${mid}', ${dIdx}, 1)" ${isLocked ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }).join('');
+
+        // メンバー追加リスト（指定順）
+        document.getElementById('master-selection-list').innerHTML = orderedIds
+            .filter(id => !state.activeMemberIds.includes(id) && id !== sid)
+            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155;">
+                <span>${MEMBER_DB[id].name}</span>
+                <button class="add-btn" onclick="state.activeMemberIds.push('${id}');save();render();">参加</button>
+            </div>`).join('');
+
+        // 設定：場所管理
+        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
+            <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="if(confirm('削除しますか？')){state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();}">削除</button></div>
+        `).join('');
+    }
+
+    /* 以下、共通関数（ログイン・タブ切り替え等） */
     function toggleDestNumbers() {
         const type = document.getElementById('dest-type').value;
         const area = document.getElementById('number-select-area');
@@ -159,74 +240,6 @@
         save(); render();
     }
 
-    function updateTime(mid, delta) {
-        const current = state.destinations[state.currentDestIdx];
-        if (current.memberLocked[mid]) return;
-        let t = current.memberTimes[mid] || DEFAULT_TIME;
-        t = Math.max(0, t + delta);
-        current.memberTimes[mid] = t;
-        save(); render();
-    }
-
-    function toggleLock(mid) {
-        const current = state.destinations[state.currentDestIdx];
-        current.memberLocked[mid] = !currentDest.memberLocked[mid];
-        save(); render();
-    }
-
-    function render() {
-        const sid = localStorage.getItem('wos_id');
-        if(!sid) return;
-        const current = state.destinations[state.currentDestIdx];
-
-        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
-            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
-        `).join('');
-
-        document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between;"><b>${current.name}</b><b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
-
-        // 参加メンバーリスト
-        document.getElementById('active-list').innerHTML = state.activeMemberIds.map(mid => {
-            const m = MEMBER_DB[mid];
-            const time = current.memberTimes[mid] || DEFAULT_TIME;
-            const isDefault = time === DEFAULT_TIME;
-            const isLocked = current.memberLocked && current.memberLocked[mid];
-            return `
-            <div class="member-row" style="${mid === sid ? 'border-left:4px solid var(--accent);' : ''}">
-                <div class="row-top">
-                    <b>${m.name}${mid === sid ? ' (あなた)' : ''}</b>
-                    <div>
-                        <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" onclick="const c=state.destinations[state.currentDestIdx]; if(!c.memberLocked)c.memberLocked={}; c.memberLocked['${mid}']=!c.memberLocked['${mid}']; save(); render();">
-                            ${isLocked ? '🔓 編集' : '🔒 ロック'}
-                        </button>
-                        ${mid !== sid ? `<button class="remove-btn" onclick="state.activeMemberIds=state.activeMemberIds.filter(id=>id!=='${mid}');save();render();">×</button>` : ''}
-                    </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.8rem; color:#94a3b8;">${current.name}への行軍</span>
-                    <div class="time-ctrl">
-                        <button class="step-btn" onclick="updateTime('${mid}', -1)" ${isLocked ? 'disabled' : ''}>-</button>
-                        <div class="time-val ${isDefault ? 'alert' : ''}">${time}s</div>
-                        <button class="step-btn" onclick="updateTime('${mid}', 1)" ${isLocked ? 'disabled' : ''}>+</button>
-                    </div>
-                </div>
-                ${isDefault ? '<div style="font-size:0.6rem; color:var(--primary); text-align:right;">⚠️ 未設定(初期値)</div>' : ''}
-            </div>`;
-        }).join('');
-
-        // 追加用リスト（ボンドから順に表示）
-        document.getElementById('master-selection-list').innerHTML = Object.keys(MEMBER_DB)
-            .filter(id => !state.activeMemberIds.includes(id) && id !== sid)
-            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155;">
-                <span>${MEMBER_DB[id].name}</span>
-                <button class="add-btn" onclick="state.activeMemberIds.push('${id}');save();render();">参加</button>
-            </div>`).join('');
-
-        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
-            <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();">削除</button></div>
-        `).join('');
-    }
-
     function processAuth() {
         const id = document.getElementById('id-input').value.trim();
         const key = document.getElementById('key-input').value.trim();
@@ -243,6 +256,14 @@
         document.getElementById('tab-' + t).classList.add('active');
         document.getElementById('nav-' + t).classList.add('active');
         render();
+    }
+
+    function updateRally(r) {
+        const sid = localStorage.getItem('wos_id');
+        const currentDest = state.destinations[state.currentDestIdx];
+        if (!currentDest.memberRally) currentDest.memberRally = {};
+        currentDest.memberRally[sid] = r;
+        save(); render();
     }
 
     window.onload = () => {
