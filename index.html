@@ -22,9 +22,7 @@
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #475569; color: white; border-radius: 8px; text-align: center; font-size: 1rem; }
         .auth-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
-        /* メインアプリ (初期状態は非表示) */
         #main-app { display: none; flex-direction: column; height: 100vh; }
-
         .header { background: #000; padding: 10px; text-align: center; border-bottom: 2px solid var(--card); }
         .clock { font-family: monospace; font-size: 1.5rem; color: var(--accent); font-weight: bold; }
         .nav { display: flex; background: var(--card); }
@@ -136,33 +134,39 @@
 
 <script>
     /* -------------------------------------------------------------------------
-       ★ セキュリティ設定 (ここを書き換えてGitHubに保存してください)
+       ★ セキュリティ & 通知設定
     ------------------------------------------------------------------------- */
-    const SECRET_PASS = "saba123";  // 最新の合言葉
-    const BANNED_USERS = ["スパイA", "裏切り者B"]; // 追放リスト（ゲーム内名前をここに入れる）
+    const SECRET_PASS = "saba123";  
+    const BANNED_USERS = ["スパイA", "裏切り者B"]; 
+    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457262608020144316/5fAwUFmuZOcJLo4CDUGGbgmBpF8MZO6UsYdECuh_WxRIz6fXLxXcUokOcz69P1Ss4mxs";
 
     /* -------------------------------------------------------------------------
-       認証ロジック
+       通知・認証・基本ロジック
     ------------------------------------------------------------------------- */
+    function sendDiscordNotification(userName) {
+        if (!DISCORD_WEBHOOK_URL) return;
+        const data = {
+            content: `📢 **アプリ利用通知**\n👤 プレイヤー名: **${userName}**\n✅ 合言葉認証を突破して利用を開始しました。`
+        };
+        fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(err => console.error("Discord通知失敗:", err));
+    }
+
     function checkSecurity() {
         const savedPass = localStorage.getItem('saved_pass');
         const savedName = localStorage.getItem('user_name');
-
-        // 1. ブラックリストチェック
         if (savedName && BANNED_USERS.includes(savedName)) {
             document.getElementById('lock-screen').style.display = 'flex';
             return;
         }
-
-        // 2. 合言葉と名前登録の状態チェック
         if (savedPass !== SECRET_PASS) {
-            // 合言葉が未登録または古い場合：合言葉入力からやり直し
             showAuthStep(1);
         } else if (!savedName) {
-            // 合言葉は合っているが名前が未登録：名前登録へ
             showAuthStep(2);
         } else {
-            // すべてOK
             initApp(savedName);
         }
     }
@@ -174,53 +178,36 @@
     }
 
     function checkPass() {
-        const input = document.getElementById('pass-input').value;
-        if (input === SECRET_PASS) {
-            localStorage.setItem('saved_pass', input);
+        if (document.getElementById('pass-input').value === SECRET_PASS) {
+            localStorage.setItem('saved_pass', SECRET_PASS);
             showAuthStep(2);
         } else {
-            showAuthErr("合言葉が違います");
+            const err = document.getElementById('auth-error');
+            err.innerText = "合言葉が違います"; err.style.display = 'block';
         }
     }
 
     function registerName() {
         const name = document.getElementById('name-input').value.trim();
-        if (name.length < 2) {
-            showAuthErr("2文字以上の正確な名前を入力してください");
-            return;
-        }
+        if (name.length < 2) return;
         if (BANNED_USERS.includes(name)) {
             document.getElementById('lock-screen').style.display = 'flex';
-            document.getElementById('auth-screen').style.display = 'none';
             return;
         }
         localStorage.setItem('user_name', name);
+        sendDiscordNotification(name); // Discordへ通知
         initApp(name);
-    }
-
-    function showAuthErr(msg) {
-        const err = document.getElementById('auth-error');
-        err.innerText = msg;
-        err.style.display = 'block';
     }
 
     function initApp(name) {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'flex';
         document.getElementById('current-user-name').innerText = name;
-        
         loadData();
-        // 最初のメンバー名を自動で自分の名前に設定（初回のみ）
-        if(state.members[0].name === "自分") {
-            state.members[0].name = name;
-            save();
-        }
+        if(state.members[0].name === "自分") { state.members[0].name = name; save(); }
         render();
     }
 
-    /* -------------------------------------------------------------------------
-       アプリ基本ロジック (これまでの機能を継承)
-    ------------------------------------------------------------------------- */
     let state = {
         destIdx: 0, targetIdx: 0, destinations: ["王城"], 
         members: [{ id: 1, name: "自分", role: "leader", times: [15], active: [true], rally: 1 }],
@@ -231,16 +218,8 @@
     function loadData() { const s = localStorage.getItem('whs_v68_data_secure'); if(s) state = JSON.parse(s); }
     const formatMS = (s) => `${Math.floor(s/60)}分${s%60}秒`;
 
-    let dragSrcEl = null;
-    function handleDragStart(e, id) { dragSrcEl = id; e.target.closest('.card, .target-accordion').classList.add('dragging'); }
-    function handleDragEnd(e) { document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); updateStateOrder(); }
-    function handleDragOver(e) { e.preventDefault(); const container = e.currentTarget; const afterElement = getDragAfterElement(container, e.clientY); const draggingEl = document.querySelector('.dragging'); if (draggingEl) { if (afterElement == null) container.appendChild(draggingEl); else container.insertBefore(draggingEl, afterElement); } }
-    function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.card:not(.dragging), .target-accordion:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset: offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
-    function updateStateOrder() { const runContainer = document.getElementById('target-list-area'); if(runContainer && runContainer.children.length > 0) { const newOrder = [...runContainer.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id)); state.enemies = newOrder.map(id => state.enemies.find(e => e.id === id)); } save(); render(); }
-
     function render() {
         const dDiv = document.getElementById('dest-btns');
-        if(!dDiv) return;
         dDiv.innerHTML = state.destinations.map((d, i) => `<button class="action-btn ${state.destIdx===i?'active':''}" onclick="state.destIdx=${i};save();render();">${d}</button>`).join('');
         const targetArea = document.getElementById('target-list-area');
         targetArea.innerHTML = state.enemies.map((e, i) => `
@@ -267,7 +246,6 @@
 
     function renderAllyList() {
         const mList = document.getElementById('member-edit-list');
-        if(!mList) return;
         mList.innerHTML = state.members.map((m, i) => `<div class="card" draggable="true" data-id="${m.id}" ondragstart="handleDragStart(event, ${m.id})" ondragend="handleDragEnd(event)">
             <div class="drag-handle"></div>
             <input type="text" value="${m.name}" oninput="state.members[${i}].name=this.value;save();">
@@ -282,7 +260,6 @@
 
     function renderEnemyList() {
         const eList = document.getElementById('enemy-edit-list');
-        if(!eList) return;
         eList.innerHTML = state.enemies.map((e, i) => `<div class="card" style="border-left:4px solid #950740;" draggable="true" data-id="${e.id}" ondragstart="handleDragStart(event, ${e.id})" ondragend="handleDragEnd(event)">
             <div class="drag-handle"></div>
             <input type="text" value="${e.name}" oninput="state.enemies[${i}].name=this.value;save();">
@@ -337,7 +314,7 @@
     function addMember() { state.members.push({ id: Date.now(), name: "新メンバー", role: "member", times: state.destinations.map(()=>15), active: state.destinations.map(()=>true), rally: 1 }); save(); render(); }
     function addEnemy() { state.enemies.push({ id: Date.now(), name: "ターゲット", times: state.destinations.map(()=>20), remain: 300 }); save(); render(); }
     function addDest() { const name = prompt("目的地名を入力:"); if(name){ state.destinations.push(name); state.members.forEach(m=>{m.times.push(15);m.active.push(true);}); state.enemies.forEach(e=>e.times.push(20)); save(); render(); } }
-    function renderDestList() { const dEdit = document.getElementById('dest-edit-list'); if(!dEdit) return; dEdit.innerHTML = state.destinations.map((d, i) => `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" value="${d}" oninput="state.destinations[${i}]=this.value;save();"><button class="del-btn" onclick="removeDest(${i})">×</button></div>`).join(''); }
+    function renderDestList() { const dEdit = document.getElementById('dest-edit-list'); dEdit.innerHTML = state.destinations.map((d, i) => `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" value="${d}" oninput="state.destinations[${i}]=this.value;save();"><button class="del-btn" onclick="removeDest(${i})">×</button></div>`).join(''); }
     function removeDest(i) { if(state.destinations.length>1){ state.destinations.splice(i,1); state.members.forEach(m=>{m.times.splice(i,1);m.active.splice(i,1);}); state.enemies.forEach(e=>e.times.splice(i,1)); state.destIdx=0; save(); render(); } }
     function resetAll() { if(confirm('全データをリセットしますか？名前や合言葉もやり直しになります。')){ localStorage.clear(); location.reload(); } }
     function copyInstructions() {
@@ -346,9 +323,34 @@
         state.members.forEach(m => { if(m.active[state.destIdx]) { const start = new Date(tDate.getTime() - (m.times[state.destIdx] + (m.role==='leader'?m.rally:0) * 60) * 1000); txt += `${m.name} ${m.role==='leader'?(m.rally===0?'【単】':`【${m.rally}分】`):'【単】'} ${start.toLocaleTimeString('ja-JP',{hour12:false})}\n`; } });
         navigator.clipboard.writeText(txt); alert("指示をコピーしました");
     }
-    setInterval(() => { const masterClockEl = document.getElementById('masterClock'); if(masterClockEl) masterClockEl.innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false}); state.enemies.forEach(e => e.remain--); updateDynamicElements(); }, 1000);
+    
+    // ドラッグ＆ドロップ用
+    let dragSrcEl = null;
+    function handleDragStart(e, id) { dragSrcEl = id; e.target.closest('.card, .target-accordion').classList.add('dragging'); }
+    function handleDragEnd(e) { document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); updateStateOrder(); }
+    function handleDragOver(e) { e.preventDefault(); const container = e.currentTarget; const afterElement = getDragAfterElement(container, e.clientY); const draggingEl = document.querySelector('.dragging'); if (draggingEl) { if (afterElement == null) container.appendChild(draggingEl); else container.insertBefore(draggingEl, afterElement); } }
+    function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.card:not(.dragging), .target-accordion:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) return { offset: offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element; }
+    function updateStateOrder() { 
+        const runContainer = document.getElementById('target-list-area');
+        if(runContainer && runContainer.children.length > 0) {
+            const newOrder = [...runContainer.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id));
+            state.enemies = newOrder.map(id => state.enemies.find(e => e.id === id)).filter(x => x);
+        }
+        const memberContainer = document.getElementById('member-edit-list');
+        if(memberContainer && memberContainer.children.length > 0) {
+            const newOrder = [...memberContainer.querySelectorAll('[data-id]')].map(el => parseInt(el.dataset.id));
+            state.members = newOrder.map(id => state.members.find(m => m.id === id)).filter(x => x);
+        }
+        save(); render(); 
+    }
 
-    // 起動！
+    setInterval(() => { 
+        const clock = document.getElementById('masterClock');
+        if(clock) clock.innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false});
+        state.enemies.forEach(e => e.remain--);
+        updateDynamicElements();
+    }, 1000);
+
     checkSecurity();
 </script>
 </body>
