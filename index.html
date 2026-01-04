@@ -3,45 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WOS Commander Final</title>
+    <title>WOS Commander Final Pro</title>
     <style>
         :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; --enemy: #fb7185; --ally: #38bdf8; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        /* ダブルタップズーム防止 */
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            touch-action: manipulation; 
+        }
+
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
+        
         #auth-screen { position: fixed; inset: 0; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); padding: 20px; }
         .auth-card { background: var(--card); padding: 30px; border-radius: 16px; width: 100%; max-width: 340px; border: 1px solid var(--primary); text-align: center; }
         .auth-input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #475569; color: white; border-radius: 8px; text-align: center; }
+        
         #main-app { display: none; flex-direction: column; height: 100%; }
         .header { background: #000; padding: 10px; text-align: center; border-bottom: 2px solid var(--card); font-family: monospace; font-size: 1.4rem; color: var(--accent); flex-shrink: 0; }
+        
         .nav { display: flex; background: var(--card); flex-shrink: 0; }
         .nav-btn { flex: 1; padding: 15px 5px; border: none; background: none; color: #64748b; font-weight: bold; font-size: 0.9rem; border-bottom: 3px solid transparent; }
         .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(255, 75, 92, 0.1); }
+        
         .content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 150px; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
+        
         .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155; }
         .title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
+        
         .target-box { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid #475569; }
         .target-head { background: #1e293b; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--enemy); cursor: pointer; }
         .target-head.active { background: var(--primary); color: white; }
         .timer-val { font-family: monospace; font-weight: bold; font-size: 1.4rem; color: var(--warning); }
         .target-body { display: none; background: #0f172a; padding: 10px; }
         .target-body.open { display: block; }
+        
         .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; border-left: 4px solid var(--ally); }
         .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 2px; border-radius: 6px; }
-        .step-btn { background: #334155; color: white; border: none; width: 32px; height: 32px; border-radius: 4px; font-weight: bold; }
-        .order-btn { background: #475569; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; }
+        .step-btn { background: #334155; color: white; border: none; width: 34px; height: 34px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; }
+        .order-btn { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-size: 0.8rem; }
+        
         .footer { background: #000; border-top: 2px solid var(--primary); padding: 15px; flex-shrink: 0; }
         .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .action-btn { background: #334155; border: none; color: white; padding: 12px 5px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
         .action-btn.active { background: var(--primary); }
+        
         .sub-nav { display: flex; gap: 10px; margin-bottom: 15px; }
         .sub-nav-btn { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: #94a3b8; font-weight: bold; }
         .sub-nav-btn.active-ally { background: var(--ally); color: #000; }
         .sub-nav-btn.active-enemy { background: var(--enemy); color: #fff; }
+        
         .cd-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #334155; }
         .cd-time { font-family: monospace; font-size: 1.1rem; color: var(--warning); font-weight: bold; }
-        input[type="text"], input[type="number"], select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        input[type="text"], input[type="number"], select { background: #000; color: #fff; padding: 12px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -65,7 +84,7 @@
     
     <div class="content">
         <div id="tab-run" class="tab-pane active">
-            <div class="card"><div class="title">目的地</div><div id="dest-btns" class="btn-grid"></div></div>
+            <div class="card"><div class="title">目的地選択</div><div id="dest-btns" class="btn-grid"></div></div>
             <div id="run-targets"></div>
             <button class="action-btn" style="width:100%; background:var(--primary); margin-top:10px;" onclick="copyInstructions()">📋 指示を一括コピー</button>
         </div>
@@ -77,10 +96,10 @@
             </div>
             <div class="card">
                 <div class="title" id="add-title">新規追加</div>
-                <div style="display:flex; gap:5px;"><input type="text" id="manual-name" placeholder="名前" style="margin-bottom:0;"><button class="action-btn" style="background:var(--secondary); color:#000;" onclick="addManual()">追加</button></div>
+                <div style="display:flex; gap:5px;"><input type="text" id="manual-name" placeholder="名前を入力" style="margin-bottom:0;"><button class="action-btn" style="background:var(--secondary); color:#000;" onclick="addManual()">追加</button></div>
             </div>
             <div id="member-list-area"></div>
-            <div id="db-area"><hr style="border:0; border-top:1px solid #475569; margin:20px 0;"><div class="title">➕ DBから追加</div><div id="db-list"></div></div>
+            <div id="db-area"><hr style="border:0; border-top:1px solid #475569; margin:20px 0;"><div class="title">➕ 名簿DBから追加</div><div id="db-list"></div></div>
         </div>
 
         <div id="tab-settings" class="tab-pane">
@@ -88,7 +107,7 @@
                 <div class="title">目的地の追加</div>
                 <select id="dest-type" onchange="toggleDestNumbers()"><option value="王城">王城</option><option value="砦">砦</option><option value="要塞">要塞</option></select>
                 <div id="number-select-area" style="display:none;"><select id="dest-number"></select></div>
-                <button class="action-btn" style="width:100%; background:var(--secondary); color:#000;" onclick="addDest()">追加</button>
+                <button class="action-btn" style="width:100%; background:var(--secondary); color:#000;" onclick="addDest()">この場所を追加</button>
             </div>
             <div class="card"><div class="title">拠点管理</div><div id="dest-manage-list"></div></div>
             <button class="action-btn" style="width:100%; background:#950740;" onclick="logout()">🚪 ログアウト</button>
@@ -100,8 +119,18 @@
 
 <script>
     const MEMBER_DB = {"493212867":{name:"ボンド",key:"b3d2i867"},"492059189":{name:"スミスミ",key:"s2m5i189"},"491154948":{name:"NOBU",key:"n1b5u948"},"491133240":{name:"ユフィ",key:"y1f3u240"},"492271392":{name:"スランバー",key:"s2u7a392"},"492055360":{name:"Do_rucy",key:"d0r5u360"},"491527765":{name:"れふく",key:"r1f2u765"},"492822360":{name:"うめきち",key:"u8k2h260"},"490876270":{name:"うどん",key:"udo270"},"529236482":{name:"テラフレート",key:"t2r3f482"},"490839848":{name:"モモマイ",key:"m0m3a848"},"492658594":{name:"アコー",key:"ako594"},"492132013":{name:"ヤマダタロウ",key:"yam013"},"491137229":{name:"久利生公平",key:"kur229"},"493706541":{name:"Arya",key:"ary541"},"490759416":{name:"guro",key:"gur416"},"493861396":{name:"なーっ",key:"naa396"},"492547880":{name:"miha25",key:"mih880"},"494362543":{name:"muta", key:"mut543"},"491563333":{name:"かねやん",key:"kan333"},"492842337":{name:"Alonso",key:"alo337"},"491787053":{name:"ちゃら男",key:"cha053"},"493183277":{name:"こーちゃん",key:"koo277"},"493645404":{name:"ヘロヘロ",key:"h3l6a404"},"494203981":{name:"wonsang007",key:"won981"},"491300814":{name:"大Beat帝国",key:"dai814"},"497820788":{name:"Ferdinand",key:"fer788"},"492164518":{name:"おこおこ",key:"oko518"},"615629018":{name:"ヒルチャール",key:"hir018"}};
-    let state = JSON.parse(localStorage.getItem('wos_final_sync')) || { currentDestIdx: 0, targetIdx: 0, allyTab: 'ally', destinations: [{ name: "王城" }], activeMembers: [], enemies: [], myRally: 1 };
-    function save() { localStorage.setItem('wos_final_sync', JSON.stringify(state)); }
+    
+    let state = JSON.parse(localStorage.getItem('wos_final_synchronized')) || { 
+        currentDestIdx: 0, 
+        targetIdx: 0, 
+        allyTab: 'ally', 
+        destinations: [{ name: "王城" }], 
+        activeMembers: [], 
+        enemies: [], 
+        myRally: 1 
+    };
+
+    function save() { localStorage.setItem('wos_final_synchronized', JSON.stringify(state)); }
 
     function logout() { if(confirm('ログアウトしますか？')){ localStorage.removeItem('wos_id'); location.reload(); } }
 
@@ -109,7 +138,8 @@
         const list = type === 'ally' ? state.activeMembers : state.enemies;
         const newIndex = index + direction;
         if (newIndex < 0 || newIndex >= list.length) return;
-        [list[index], list[newIndex]] = [list[newIndex], list[index]]; save(); render();
+        [list[index], list[newIndex]] = [list[newIndex], list[index]]; 
+        save(); render();
     }
 
     function addManual() {
@@ -123,26 +153,40 @@
     function addFromDB(id) { if(!state.activeMembers.find(m => m.id == id)) state.activeMembers.push({ id, name: MEMBER_DB[id].name, times: {}, locked: {} }); save(); render(); }
 
     function toggleDestNumbers() {
-        const type = document.getElementById('dest-type').value; const area = document.getElementById('number-select-area'); const select = document.getElementById('dest-number');
+        const type = document.getElementById('dest-type').value; 
+        const area = document.getElementById('number-select-area'); 
+        const select = document.getElementById('dest-number');
         select.innerHTML = '';
-        if (type !== '王城') { area.style.display = 'block'; const max = type === '砦' ? 12 : 4; for(let i=1; i<=max; i++) select.innerHTML += `<option value="${i}">${i}号</option>`; }
-        else area.style.display = 'none';
+        if (type !== '王城') { 
+            area.style.display = 'block'; 
+            const max = type === '砦' ? 12 : 4; 
+            for(let i=1; i<=max; i++) select.innerHTML += `<option value="${i}">${i}号</option>`; 
+        } else area.style.display = 'none';
     }
-    function addDest() { const type = document.getElementById('dest-type').value; const num = document.getElementById('dest-number').value; const name = type === '王城' ? '王城' : num + type; state.destinations.push({ name }); save(); render(); }
+
+    function addDest() { 
+        const type = document.getElementById('dest-type').value; 
+        const num = document.getElementById('dest-number').value; 
+        const name = type === '王城' ? '王城' : num + type; 
+        state.destinations.push({ name }); save(); render(); 
+    }
 
     function render() {
         const sid = localStorage.getItem('wos_id'); if(!sid) return;
+        
+        // 目的地描画
         document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `<button class="action-btn ${state.currentDestIdx==i?'active':''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>`).join('');
         
+        // ⚡ 実行タブ
         document.getElementById('run-targets').innerHTML = state.enemies.map((e, i) => `
             <div class="target-box">
                 <div class="target-head ${state.targetIdx==i?'active':''}" onclick="state.targetIdx=${i};save();render();"><b>${e.name}</b><span class="timer-val" id="timer-${i}">0:00</span></div>
                 <div class="target-body ${state.targetIdx==i?'open':''}">
                     <div style="background:rgba(255,255,255,0.1); padding:8px; border-radius:8px; margin-bottom:10px; text-align:center;">
-                        <div class="title" style="color:var(--secondary);">👿 敵行軍 (到着まで)</div>
+                        <div class="title" style="color:var(--secondary);">👿 敵行軍時間 (目的地まで)</div>
                         <div class="time-ctrl" style="justify-content:center; background:none;">
                             <button class="step-btn" onclick="state.enemies[${i}].travel-=1;save();render();">-1</button>
-                            <div class="time-val" style="width:50px;">${e.travel||20}s</div>
+                            <div class="time-val" style="width:60px; font-weight:bold;">${e.travel||20}s</div>
                             <button class="step-btn" onclick="state.enemies[${i}].travel+=1;save();render();">+1</button>
                         </div>
                     </div>
@@ -155,6 +199,7 @@
                 </div>
             </div>`).join('');
 
+        // 👥 名簿・敵リスト
         const isAlly = state.allyTab === 'ally';
         const list = isAlly ? state.activeMembers : state.enemies;
         document.getElementById('member-list-area').innerHTML = list.map((m, i) => `
@@ -163,23 +208,25 @@
                     <div><button class="order-btn" onclick="moveItem('${state.allyTab}', ${i}, -1)">↑</button><button class="order-btn" onclick="moveItem('${state.allyTab}', ${i}, 1)">↓</button>
                     <b style="margin-left:5px;">${m.name}${m.id==sid?'(自)':''}</b></div>
                     <div><button class="order-btn" style="background:none; color:#94a3b8;" onclick="const n=prompt('改名','${m.name}');if(n){m.name=n;save();render();}">✏️</button>
-                    <button class="order-btn" style="background:#444;" onclick="if(confirm('削除？')){list.splice(${i},1);save();render();}">×</button></div>
+                    <button class="order-btn" style="background:#444;" onclick="if(confirm('削除しますか？')){list.splice(${i},1);save();render();}">×</button></div>
                 </div>
                 ${!isAlly ? `
-                    <div style="margin-top:8px; display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.2); padding:5px; border-radius:4px;">
-                        <span class="title" style="margin:0;">行軍設定:</span>
+                    <div style="margin-top:8px; display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.2); padding:8px; border-radius:4px;">
+                        <span class="title" style="margin:0;">行軍同期設定:</span>
                         <div class="time-ctrl"><button class="step-btn" onclick="m.travel-=1;save();render();">-</button><div class="time-val" style="width:40px;">${m.travel||20}s</div><button class="step-btn" onclick="m.travel+=1;save();render();">+</button></div>
                     </div>` : `
-                    <button class="action-btn" style="padding:4px; font-size:0.7rem; margin:8px 0;" onclick="if(confirm('リセット？')){state.destinations.forEach((d,di)=>{if(!m.locked[di])m.times[di]=15;});save();render();}">🔄 ロック以外を15sにリセット</button>
+                    <button class="action-btn" style="padding:6px; font-size:0.7rem; margin:8px 0;" onclick="if(confirm('15sにリセットしますか？(ロック以外)')){state.destinations.forEach((d,di)=>{if(!m.locked[di])m.times[di]=15;});save();render();}">🔄 ロック以外を15sに一括リセット</button>
                     ${state.destinations.map((d, di) => {
                         const t = m.times[di] || 15; const L = m.locked && m.locked[di];
-                        return `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span><button onclick="if(!m.locked)m.locked={}; m.locked[${di}]=!m.locked[${di}];save();render();" style="border:none; background:none;">${L?'🔒':'🔓'}</button>${d.name}</span>
+                        return `<div style="display:flex; justify-content:space-between; padding:4px 0; align-items:center;"><span><button onclick="if(!m.locked)m.locked={}; m.locked[${di}]=!m.locked[${di}];save();render();" style="border:none; background:none; padding:0;">${L?'🔒':'🔓'}</button>${d.name}</span>
                         <div class="time-ctrl"><button class="step-btn" onclick="m.times[di]=(m.times[di]||15)-1;save();render();" ${L?'disabled':''}>-</button><div class="time-val" style="width:35px;">${t}s</div><button class="step-btn" onclick="m.times[di]=(m.times[di]||15)+1;save();render();" ${L?'disabled':''}>+</button></div></div>`;
                     }).join('')}`}
             </div>`).join('');
 
         document.getElementById('db-list').innerHTML = Object.keys(MEMBER_DB).filter(id => !state.activeMembers.find(m => m.id == id)).map(id => `<div class="card" style="display:flex; justify-content:space-between; align-items:center;"><span>${MEMBER_DB[id].name}</span><button class="action-btn" onclick="addFromDB('${id}')">追加</button></div>`).join('');
         document.getElementById('db-area').style.display = isAlly ? 'block' : 'none';
+        
+        // 設定：拠点管理
         document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" value="${d.name}" oninput="state.destinations[${i}].name=this.value;save();" style="margin:0;"><button class="action-btn" style="background:#444;" onclick="state.destinations.splice(${i},1);save();render();">×</button></div>`).join('');
     }
 
@@ -212,16 +259,25 @@
             const start = new Date(arrival - (myTime + rallyOffset) * 1000);
             txt += `${m.name} 【${rallyOffset>0?state.myRally+'分':'単'}】 ${start.toLocaleTimeString('ja-JP',{hour12:false})}\n`;
         });
-        navigator.clipboard.writeText(txt); alert("指示コピー完了");
+        navigator.clipboard.writeText(txt); alert("軍団チャット用指示をコピーしました");
     }
 
     function showTab(t) { document.querySelectorAll('.tab-pane, .nav-btn').forEach(el=>el.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); document.getElementById('nav-'+t).classList.add('active'); render(); }
     function setAllyTab(t) { state.allyTab = t; document.getElementById('sub-nav-ally').className = t=='ally'?'sub-nav-btn active-ally':'sub-nav-btn'; document.getElementById('sub-nav-enemy').className = t=='enemy'?'sub-nav-btn active-enemy':'sub-nav-btn'; render(); }
     function updateRally(r) { state.myRally = r; save(); render(); }
-    function processAuth() { const id = document.getElementById('id-input').value; const key = document.getElementById('key-input').value; if(MEMBER_DB[id] && MEMBER_DB[id].key === key){ localStorage.setItem('wos_id', id); location.reload(); }else alert("認証失敗"); }
+    function processAuth() { const id = document.getElementById('id-input').value; const key = document.getElementById('key-input').value; if(MEMBER_DB[id] && MEMBER_DB[id].key === key){ localStorage.setItem('wos_id', id); location.reload(); }else alert("認証に失敗しました。IDまたはキーを確認してください。"); }
 
+    // メインループ
     setInterval(() => { state.enemies.forEach(e => { if(e.remain>-100) e.remain--; }); updateDynamic(); document.getElementById('masterClock').innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false}); }, 1000);
-    window.onload = () => { const sid = localStorage.getItem('wos_id'); if(!sid) document.getElementById('auth-screen').style.display='flex'; else { if(!state.activeMembers.find(m=>m.id==sid)) state.activeMembers.unshift({id:sid, name:MEMBER_DB[sid].name, times:{}, locked:{}}); document.getElementById('main-app').style.display='flex'; render(); } };
+    
+    window.onload = () => { 
+        const sid = localStorage.getItem('wos_id'); 
+        if(!sid) document.getElementById('auth-screen').style.display='flex'; 
+        else { 
+            if(!state.activeMembers.find(m=>m.id==sid)) state.activeMembers.unshift({id:sid, name:MEMBER_DB[sid].name, times:{}, locked:{}}); 
+            document.getElementById('main-app').style.display='flex'; render(); 
+        } 
+    };
 </script>
 </body>
 </html>
