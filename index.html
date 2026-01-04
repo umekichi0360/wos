@@ -41,8 +41,7 @@
 <div id="auth-screen">
     <div class="auth-card">
         <h2>🛡️ 認証</h2>
-        <input type="number" id="id-input" class="auth-input" placeholder="ID">
-        <input type="password" id="key-input" class="auth-input" placeholder="キー">
+        <input type="number" id="id-input" class="auth-input" placeholder="IDを入力">
         <button class="action-btn" style="width:100%; background:var(--primary);" onclick="processAuth()">ログイン</button>
     </div>
 </div>
@@ -61,7 +60,7 @@
         </div>
 
         <div id="tab-ally" class="tab-pane">
-            <div class="title">🏃 現在の参加メンバー</div>
+            <div class="title">🏃 作戦参加メンバー (最上部はあなた)</div>
             <div id="active-list" style="margin-bottom:20px;"></div>
             
             <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
@@ -85,7 +84,6 @@
 </div>
 
 <script>
-    // 名簿順序修正：Do_rucyの次にうめきちを配置
     const MEMBER_MASTER = [
         {id:"493212867", name:"ボンド"}, {id:"492059189", name:"スミスミ"}, {id:"491154948", name:"NOBU"}, 
         {id:"491133240", name:"ユフィ"}, {id:"492271392", name:"スランバー"}, {id:"492055360", name:"Do_rucy"}, 
@@ -99,12 +97,12 @@
         {id:"492164518", name:"おこおこ"}, {id:"615629018", name:"ヒルチャール"}
     ];
 
-    let state = JSON.parse(localStorage.getItem('wos_v5')) || {
+    let state = JSON.parse(localStorage.getItem('wos_v6')) || {
         activeMembers: [], 
         enemy: { name: "ターゲット1", remain: 300 }
     };
 
-    function save() { localStorage.setItem('wos_v5', JSON.stringify(state)); }
+    function save() { localStorage.setItem('wos_v6', JSON.stringify(state)); }
 
     function showTab(t) {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -119,6 +117,11 @@
         if (m) {
             localStorage.setItem('wos_id', id);
             localStorage.setItem('wos_name', m.name);
+            // ログイン時、自分を自動的に参加リストの先頭に追加
+            if (!state.activeMembers.find(x => x.id === id)) {
+                state.activeMembers.unshift({ ...m, time: 30, rally: 0 });
+                save();
+            }
             location.reload();
         } else { alert("IDが違います"); }
     }
@@ -133,6 +136,12 @@
     }
 
     function removeMember(id) {
+        // 自分自身は削除できないように設定（常に最上部に表示するため）
+        const sid = localStorage.getItem('wos_id');
+        if (id === sid) {
+            alert("自分自身はリストから削除できません");
+            return;
+        }
         state.activeMembers = state.activeMembers.filter(m => m.id !== id);
         save();
         render();
@@ -142,6 +151,7 @@
         const sid = localStorage.getItem('wos_id');
         if(!sid) return;
 
+        // ターゲット表示
         document.getElementById('target-area').innerHTML = `
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -155,21 +165,25 @@
                 </div>
             </div>`;
 
+        // 参加中リスト（自分は「削除」ボタンを表示しない）
         document.getElementById('active-list').innerHTML = state.activeMembers.map((m, i) => `
-            <div class="member-row">
-                <span><b>${m.name}</b></span>
+            <div class="member-row" style="${m.id === sid ? 'border: 1px solid var(--accent); background: rgba(74, 222, 128, 0.1);' : ''}">
+                <span><b>${m.name}${m.id === sid ? ' (あなた)' : ''}</b></span>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <input type="number" style="width:60px; height:35px; background:#000; color:#fff; border:1px solid #4ade80; text-align:center; border-radius:4px;" 
                         value="${m.time}" oninput="state.activeMembers[${i}].time=Number(this.value);save();">
-                    <button class="remove-btn" onclick="removeMember('${m.id}')">削除</button>
+                    ${m.id !== sid ? `<button class="remove-btn" onclick="removeMember('${m.id}')">削除</button>` : ''}
                 </div>
-            </div>`).join('') || '<p style="text-align:center; color:#64748b;">参加者がいません</p>';
-
-        document.getElementById('master-selection-list').innerHTML = MEMBER_MASTER.map(m => `
-            <div class="member-row" style="background:none;">
-                <span>${m.name}</span>
-                <button class="add-btn" onclick="addMember('${m.id}')">参加</button>
             </div>`).join('');
+
+        // 選択用リスト（自分自身は表示しない）
+        document.getElementById('master-selection-list').innerHTML = MEMBER_MASTER
+            .filter(m => m.id !== sid)
+            .map(m => `
+                <div class="member-row" style="background:none;">
+                    <span>${m.name}</span>
+                    <button class="add-btn" onclick="addMember('${m.id}')">参加</button>
+                </div>`).join('');
             
         const my = state.activeMembers.find(m => m.id === sid);
         [0,1,5].forEach(r => {
@@ -185,8 +199,15 @@
     }
 
     window.onload = () => {
-        if (!localStorage.getItem('wos_id')) document.getElementById('auth-screen').style.display = 'flex';
+        const sid = localStorage.getItem('wos_id');
+        if (!sid) document.getElementById('auth-screen').style.display = 'flex';
         else {
+            // 初回ログイン時、万が一自分がいなければ追加
+            if (!state.activeMembers.find(x => x.id === sid)) {
+                const me = MEMBER_MASTER.find(x => x.id === sid);
+                if(me) state.activeMembers.unshift({ ...me, time: 30, rally: 0 });
+                save();
+            }
             document.getElementById('main-app').style.display = 'flex';
             render();
             setInterval(() => {
