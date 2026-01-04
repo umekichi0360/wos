@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WOS Commander PRO</title>
+    <title>WOS Commander Expert</title>
     <style>
         :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,14 +27,26 @@
         .title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
         
         .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
-        .member-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 6px; border: 1px solid #475569; }
-        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; }
-        .remove-btn { background: #444; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.7rem; }
+        .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; border: 1px solid #475569; }
+        .row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         
+        .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 4px; border-radius: 6px; }
+        .step-btn { background: #334155; color: white; border: none; width: 30px; height: 30px; border-radius: 4px; font-weight: bold; }
+        .time-val { width: 50px; text-align: center; font-weight: bold; color: var(--accent); }
+        .time-val.alert { color: var(--primary); text-decoration: underline; }
+
+        .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; }
+        .remove-btn { background: #444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; }
+        .lock-btn { border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; margin-right: 5px; }
+        .locked { background: #1e293b; color: #64748b; border: 1px solid #475569; }
+        .unlocked { background: var(--accent); color: #000; font-weight: bold; }
+
         .footer { background: #000; border-top: 2px solid var(--primary); padding: 15px; flex-shrink: 0; }
         .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .action-btn { background: #334155; border: none; color: white; padding: 12px 5px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
         .action-btn.active { background: var(--primary); }
+        
+        select { background: #000; color: #fff; padding: 10px; border: 1px solid #475569; border-radius: 4px; width: 100%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -58,38 +70,32 @@
     
     <div class="content">
         <div id="tab-run" class="tab-pane active">
-            <div class="card">
-                <div class="title">目的地（場所切り替え）</div>
-                <div id="dest-btns" class="dest-grid"></div>
-            </div>
+            <div class="card"><div class="title">目的地切り替え</div><div id="dest-btns" class="dest-grid"></div></div>
             <div id="target-area"></div>
         </div>
 
         <div id="tab-ally" class="tab-pane">
-            <div class="card" style="border-left:4px solid var(--secondary);">
-                <div class="title">現在編集中の場所</div>
-                <b id="editing-dest-name" style="color:var(--secondary); font-size:1.2rem;">---</b>
-            </div>
-            <div class="title">🏃 作戦参加メンバー</div>
-            <div id="active-list" style="margin-bottom:20px;"></div>
+            <div id="active-list"></div>
             <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
-            <div class="title">➕ メンバーを追加</div>
+            <div class="title">➕ メンバーを追加 (ボンド以降)</div>
             <div id="master-selection-list"></div>
         </div>
 
         <div id="tab-settings" class="tab-pane">
             <div class="card">
                 <div class="title">目的地の追加</div>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" id="new-dest-name" style="flex:1; padding:10px; background:#000; border:1px solid #475569; color:#fff; border-radius:4px;" placeholder="場所名を入力">
-                    <button class="add-btn" onclick="addDest()">追加</button>
+                <select id="dest-type" onchange="toggleDestNumbers()">
+                    <option value="王城">王城</option>
+                    <option value="砦">砦</option>
+                    <option value="要塞">要塞</option>
+                </select>
+                <div id="number-select-area" style="display:none;">
+                    <select id="dest-number"></select>
                 </div>
+                <button class="add-btn" style="width:100%;" onclick="addDest()">この場所を追加</button>
             </div>
-            <div class="card">
-                <div class="title">場所の削除</div>
-                <div id="dest-manage-list"></div>
-            </div>
-            <button class="action-btn" style="width:100%; background:#444; margin-top:20px;" onclick="if(confirm('ログアウトしますか？')){localStorage.clear();location.reload();}">ログアウト</button>
+            <div class="card"><div class="title">場所の管理</div><div id="dest-manage-list"></div></div>
+            <button class="action-btn" style="width:100%; background:#444;" onclick="localStorage.clear();location.reload();">ログアウト</button>
         </div>
     </div>
 
@@ -116,147 +122,126 @@
         "494362543": { name: "muta", key: "mut543" }, "491563333": { name: "かねやん", key: "kan333" },
         "492842337": { name: "Alonso", key: "alo337" }, "491787053": { name: "ちゃら男", key: "cha053" },
         "493183277": { name: "こーちゃん", key: "koo277" }, "493645404": { name: "ヘロヘロ", key: "h3l6a404" },
-        "494203981": { name: "wonsang007" }, "491300814": { name: "大Beat帝国" }, "497820788": { name: "Ferdinand" },
-        "492164518": { name: "おこおこ" }, "615629018": { name: "ヒルチャール" }
+        "494203981": { name: "wonsang007", key: "won981" }, "491300814": { name: "大Beat帝国", key: "dai814" }, 
+        "497820788": { name: "Ferdinand", key: "fer788" }, "492164518": { name: "おこおこ", key: "oko518" }, 
+        "615629018": { name: "ヒルチャール", key: "hir018" }
     };
 
-    let state = JSON.parse(localStorage.getItem('wos_v9')) || {
+    // 初期値: 0分15秒
+    const DEFAULT_TIME = 15;
+
+    let state = JSON.parse(localStorage.getItem('wos_v10')) || {
         currentDestIdx: 0,
-        destinations: [{ name: "王城", memberTimes: {}, memberRally: {} }],
+        destinations: [{ name: "王城", memberTimes: {}, memberLocked: {} }],
         activeMemberIds: [],
         enemyRemain: 300
     };
 
-    function save() { localStorage.setItem('wos_v9', JSON.stringify(state)); }
+    function save() { localStorage.setItem('wos_v10', JSON.stringify(state)); }
+
+    function toggleDestNumbers() {
+        const type = document.getElementById('dest-type').value;
+        const area = document.getElementById('number-select-area');
+        const select = document.getElementById('dest-number');
+        select.innerHTML = '';
+        if (type === '砦' || type === '要塞') {
+            area.style.display = 'block';
+            const max = type === '砦' ? 12 : 4;
+            for(let i=1; i<=max; i++) select.innerHTML += `<option value="${i}">${i}号</option>`;
+        } else { area.style.display = 'none'; }
+    }
+
+    function addDest() {
+        const type = document.getElementById('dest-type').value;
+        const num = document.getElementById('dest-number').value;
+        const name = type === '王城' ? '王城' : num + '号' + type;
+        state.destinations.push({ name: name, memberTimes: {}, memberLocked: {} });
+        save(); render();
+    }
+
+    function updateTime(mid, delta) {
+        const current = state.destinations[state.currentDestIdx];
+        if (current.memberLocked[mid]) return;
+        let t = current.memberTimes[mid] || DEFAULT_TIME;
+        t = Math.max(0, t + delta);
+        current.memberTimes[mid] = t;
+        save(); render();
+    }
+
+    function toggleLock(mid) {
+        const current = state.destinations[state.currentDestIdx];
+        current.memberLocked[mid] = !currentDest.memberLocked[mid];
+        save(); render();
+    }
+
+    function render() {
+        const sid = localStorage.getItem('wos_id');
+        if(!sid) return;
+        const current = state.destinations[state.currentDestIdx];
+
+        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
+            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
+        `).join('');
+
+        document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between;"><b>${current.name}</b><b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
+
+        // 参加メンバーリスト
+        document.getElementById('active-list').innerHTML = state.activeMemberIds.map(mid => {
+            const m = MEMBER_DB[mid];
+            const time = current.memberTimes[mid] || DEFAULT_TIME;
+            const isDefault = time === DEFAULT_TIME;
+            const isLocked = current.memberLocked && current.memberLocked[mid];
+            return `
+            <div class="member-row" style="${mid === sid ? 'border-left:4px solid var(--accent);' : ''}">
+                <div class="row-top">
+                    <b>${m.name}${mid === sid ? ' (あなた)' : ''}</b>
+                    <div>
+                        <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" onclick="const c=state.destinations[state.currentDestIdx]; if(!c.memberLocked)c.memberLocked={}; c.memberLocked['${mid}']=!c.memberLocked['${mid}']; save(); render();">
+                            ${isLocked ? '🔓 編集' : '🔒 ロック'}
+                        </button>
+                        ${mid !== sid ? `<button class="remove-btn" onclick="state.activeMemberIds=state.activeMemberIds.filter(id=>id!=='${mid}');save();render();">×</button>` : ''}
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.8rem; color:#94a3b8;">${current.name}への行軍</span>
+                    <div class="time-ctrl">
+                        <button class="step-btn" onclick="updateTime('${mid}', -1)" ${isLocked ? 'disabled' : ''}>-</button>
+                        <div class="time-val ${isDefault ? 'alert' : ''}">${time}s</div>
+                        <button class="step-btn" onclick="updateTime('${mid}', 1)" ${isLocked ? 'disabled' : ''}>+</button>
+                    </div>
+                </div>
+                ${isDefault ? '<div style="font-size:0.6rem; color:var(--primary); text-align:right;">⚠️ 未設定(初期値)</div>' : ''}
+            </div>`;
+        }).join('');
+
+        // 追加用リスト（ボンドから順に表示）
+        document.getElementById('master-selection-list').innerHTML = Object.keys(MEMBER_DB)
+            .filter(id => !state.activeMemberIds.includes(id) && id !== sid)
+            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155;">
+                <span>${MEMBER_DB[id].name}</span>
+                <button class="add-btn" onclick="state.activeMemberIds.push('${id}');save();render();">参加</button>
+            </div>`).join('');
+
+        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
+            <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();">削除</button></div>
+        `).join('');
+    }
+
+    function processAuth() {
+        const id = document.getElementById('id-input').value.trim();
+        const key = document.getElementById('key-input').value.trim();
+        if (MEMBER_DB[id] && MEMBER_DB[id].key === key) {
+            localStorage.setItem('wos_id', id);
+            localStorage.setItem('wos_name', MEMBER_DB[id].name);
+            location.reload();
+        } else { alert("認証失敗"); }
+    }
 
     function showTab(t) {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + t).classList.add('active');
         document.getElementById('nav-' + t).classList.add('active');
-        render();
-    }
-
-    // ログイン処理を厳格化
-    function processAuth() {
-        const id = document.getElementById('id-input').value.trim();
-        const key = document.getElementById('key-input').value.trim();
-        
-        if (MEMBER_DB[id]) {
-            if (MEMBER_DB[id].key === key) {
-                localStorage.setItem('wos_id', id);
-                localStorage.setItem('wos_name', MEMBER_DB[id].name);
-                location.reload();
-            } else {
-                alert("専用キーが正しくありません");
-            }
-        } else {
-            alert("該当するIDが見つかりません");
-        }
-    }
-
-    function addDest() {
-        const name = document.getElementById('new-dest-name').value.trim();
-        if (name) {
-            state.destinations.push({ name: name, memberTimes: {}, memberRally: {} });
-            document.getElementById('new-dest-name').value = '';
-            save();
-            render();
-        }
-    }
-
-    function deleteDest(idx) {
-        if (state.destinations.length <= 1) return alert("最後の場所は削除できません");
-        if (confirm(`「${state.destinations[idx].name}」を削除しますか？`)) {
-            state.destinations.splice(idx, 1);
-            state.currentDestIdx = 0;
-            save();
-            render();
-        }
-    }
-
-    function addMember(id) {
-        if (!state.activeMemberIds.includes(id)) {
-            state.activeMemberIds.push(id);
-            save();
-            render();
-        }
-    }
-
-    function removeMember(id) {
-        if (id === localStorage.getItem('wos_id')) return;
-        state.activeMemberIds = state.activeMemberIds.filter(mid => mid !== id);
-        save();
-        render();
-    }
-
-    function render() {
-        const sid = localStorage.getItem('wos_id');
-        if(!sid) return;
-
-        const currentDest = state.destinations[state.currentDestIdx];
-        document.getElementById('editing-dest-name').innerText = currentDest.name;
-
-        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
-            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
-        `).join('');
-
-        document.getElementById('target-area').innerHTML = `
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b>${currentDest.name} カウント</b>
-                    <b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b>
-                </div>
-                <div class="btn-grid" style="margin-top:15px;">
-                    <button class="action-btn" onclick="state.enemyRemain+=60;save();">+1分</button>
-                    <button class="action-btn" onclick="state.enemyRemain+=1;save();">+1s</button>
-                    <button class="action-btn" onclick="state.enemyRemain-=1;save();">-1s</button>
-                </div>
-            </div>`;
-
-        document.getElementById('active-list').innerHTML = state.activeMemberIds.map((mid) => {
-            const m = MEMBER_DB[mid];
-            if(!m) return '';
-            const time = currentDest.memberTimes[mid] || 30;
-            return `
-            <div class="member-row" style="${mid === sid ? 'border: 1px solid var(--accent); background: rgba(74,222,128,0.1);' : ''}">
-                <span><b>${m.name}</b></span>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="number" style="width:55px; height:35px; background:#000; color:#fff; border:1px solid #4ade80; text-align:center;" 
-                        value="${time}" oninput="state.destinations[${state.currentDestIdx}].memberTimes['${mid}']=Number(this.value);save();">
-                    ${mid !== sid ? `<button class="remove-btn" onclick="removeMember('${mid}')">×</button>` : ''}
-                </div>
-            </div>`;
-        }).join('');
-
-        document.getElementById('master-selection-list').innerHTML = Object.keys(MEMBER_DB)
-            .filter(id => !state.activeMemberIds.includes(id))
-            .map(id => `
-                <div class="member-row" style="background:none;">
-                    <span>${MEMBER_DB[id].name}</span>
-                    <button class="add-btn" onclick="addMember('${id}')">参加</button>
-                </div>`).join('');
-
-        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
-            <div class="member-row">
-                <span>${d.name}</span>
-                <button class="remove-btn" onclick="deleteDest(${i})">削除</button>
-            </div>
-        `).join('');
-            
-        const myRally = (currentDest.memberRally && currentDest.memberRally[sid]) || 0;
-        [0,1,5].forEach(r => {
-            const btn = document.getElementById('rally-'+r);
-            if(btn) btn.classList.toggle('active', myRally === r);
-        });
-    }
-
-    function updateRally(r) {
-        const sid = localStorage.getItem('wos_id');
-        const currentDest = state.destinations[state.currentDestIdx];
-        if (!currentDest.memberRally) currentDest.memberRally = {};
-        currentDest.memberRally[sid] = r;
-        save();
         render();
     }
 
