@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WOS Commander Select-Mode</title>
+    <title>WOS Commander PRO</title>
     <style>
         :root { --primary: #ff4b5c; --secondary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #4ade80; --warning: #ffeb3b; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -26,6 +26,7 @@
         .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155; }
         .title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
         
+        .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
         .member-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 6px; border: 1px solid #475569; }
         .add-btn { background: var(--secondary); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; }
         .remove-btn { background: #444; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.7rem; }
@@ -41,8 +42,9 @@
 <div id="auth-screen">
     <div class="auth-card">
         <h2>🛡️ 認証</h2>
-        <input type="number" id="id-input" class="auth-input" placeholder="IDを入力">
-        <button class="action-btn" style="width:100%; background:var(--primary);" onclick="processAuth()">ログイン</button>
+        <input type="number" id="id-input" class="auth-input" placeholder="ID">
+        <input type="password" id="key-input" class="auth-input" placeholder="専用キー">
+        <button class="action-btn" style="width:100%; background:var(--primary); margin-top:10px;" onclick="processAuth()">ログイン</button>
     </div>
 </div>
 
@@ -56,21 +58,38 @@
     
     <div class="content">
         <div id="tab-run" class="tab-pane active">
+            <div class="card">
+                <div class="title">目的地（場所切り替え）</div>
+                <div id="dest-btns" class="dest-grid"></div>
+            </div>
             <div id="target-area"></div>
         </div>
 
         <div id="tab-ally" class="tab-pane">
-            <div class="title">🏃 作戦参加メンバー (最上部はあなた)</div>
+            <div class="card" style="border-left:4px solid var(--secondary);">
+                <div class="title">現在編集中の場所</div>
+                <b id="editing-dest-name" style="color:var(--secondary); font-size:1.2rem;">---</b>
+            </div>
+            <div class="title">🏃 作戦参加メンバー</div>
             <div id="active-list" style="margin-bottom:20px;"></div>
-            
             <hr style="border:0; border-top:1px solid #475569; margin:20px 0;">
-            
             <div class="title">➕ メンバーを追加</div>
             <div id="master-selection-list"></div>
         </div>
 
         <div id="tab-settings" class="tab-pane">
-            <button class="action-btn" style="width:100%; background:#444;" onclick="localStorage.clear();location.reload();">ログアウト・初期化</button>
+            <div class="card">
+                <div class="title">目的地の追加</div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="new-dest-name" style="flex:1; padding:10px; background:#000; border:1px solid #475569; color:#fff; border-radius:4px;" placeholder="場所名を入力">
+                    <button class="add-btn" onclick="addDest()">追加</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="title">場所の削除</div>
+                <div id="dest-manage-list"></div>
+            </div>
+            <button class="action-btn" style="width:100%; background:#444; margin-top:20px;" onclick="if(confirm('ログアウトしますか？')){localStorage.clear();location.reload();}">ログアウト</button>
         </div>
     </div>
 
@@ -84,65 +103,89 @@
 </div>
 
 <script>
-    const MEMBER_MASTER = [
-        {id:"493212867", name:"ボンド"}, {id:"492059189", name:"スミスミ"}, {id:"491154948", name:"NOBU"}, 
-        {id:"491133240", name:"ユフィ"}, {id:"492271392", name:"スランバー"}, {id:"492055360", name:"Do_rucy"}, 
-        {id:"492822360", name:"うめきち"}, {id:"491527765", name:"れふく"}, {id:"490876270", name:"うどん"},
-        {id:"529236482", name:"テラフレート"}, {id:"490839848", name:"モモマイ"}, {id:"492658594", name:"アコー"},
-        {id:"492132013", name:"ヤマダタロウ"}, {id:"491137229", name:"久利生公平"}, {id:"493706541", name:"Arya"},
-        {id:"490759416", name:"guro"}, {id:"493861396", name:"なーっ"}, {id:"492547880", name:"miha25"},
-        {id:"494362543", name:"muta"}, {id:"491563333", name:"かねやん"}, {id:"492842337", name:"Alonso"},
-        {id:"491787053", name:"ちゃら男"}, {id:"493183277", name:"こーちゃん"}, {id:"493645404", name:"ヘロヘロ"},
-        {id:"494203981", name:"wonsang007"}, {id:"491300814", name:"大Beat帝国"}, {id:"497820788", name:"Ferdinand"},
-        {id:"492164518", name:"おこおこ"}, {id:"615629018", name:"ヒルチャール"}
-    ];
-
-    let state = JSON.parse(localStorage.getItem('wos_v6')) || {
-        activeMembers: [], 
-        enemy: { name: "ターゲット1", remain: 300 }
+    const MEMBER_DB = {
+        "493212867": { name: "ボンド", key: "b3d2i867" }, "492059189": { name: "スミスミ", key: "s2m5i189" },
+        "491154948": { name: "NOBU", key: "n1b5u948" }, "491133240": { name: "ユフィ", key: "y1f3u240" },
+        "492271392": { name: "スランバー", key: "s2u7a392" }, "492055360": { name: "Do_rucy", key: "d0r5u360" },
+        "492822360": { name: "うめきち", key: "u8k2h260" }, "491527765": { name: "れふく", key: "r1f2u765" },
+        "490876270": { name: "うどん", key: "udo270" }, "529236482": { name: "テラフレート", key: "t2r3f482" },
+        "490839848": { name: "モモマイ", key: "m0m3a848" }, "492658594": { name: "アコー", key: "ako594" },
+        "492132013": { name: "ヤマダタロウ", key: "yam013" }, "491137229": { name: "久利生公平", key: "kur229" },
+        "493706541": { name: "Arya", key: "ary541" }, "490759416": { name: "guro", key: "gur416" },
+        "493861396": { name: "なーっ", key: "naa396" }, "492547880": { name: "miha25", key: "mih880" },
+        "494362543": { name: "muta", key: "mut543" }, "491563333": { name: "かねやん", key: "kan333" },
+        "492842337": { name: "Alonso", key: "alo337" }, "491787053": { name: "ちゃら男", key: "cha053" },
+        "493183277": { name: "こーちゃん", key: "koo277" }, "493645404": { name: "ヘロヘロ", key: "h3l6a404" },
+        "494203981": { name: "wonsang007" }, "491300814": { name: "大Beat帝国" }, "497820788": { name: "Ferdinand" },
+        "492164518": { name: "おこおこ" }, "615629018": { name: "ヒルチャール" }
     };
 
-    function save() { localStorage.setItem('wos_v6', JSON.stringify(state)); }
+    let state = JSON.parse(localStorage.getItem('wos_v9')) || {
+        currentDestIdx: 0,
+        destinations: [{ name: "王城", memberTimes: {}, memberRally: {} }],
+        activeMemberIds: [],
+        enemyRemain: 300
+    };
+
+    function save() { localStorage.setItem('wos_v9', JSON.stringify(state)); }
 
     function showTab(t) {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + t).classList.add('active');
         document.getElementById('nav-' + t).classList.add('active');
+        render();
     }
 
+    // ログイン処理を厳格化
     function processAuth() {
         const id = document.getElementById('id-input').value.trim();
-        const m = MEMBER_MASTER.find(x => x.id === id);
-        if (m) {
-            localStorage.setItem('wos_id', id);
-            localStorage.setItem('wos_name', m.name);
-            // ログイン時、自分を自動的に参加リストの先頭に追加
-            if (!state.activeMembers.find(x => x.id === id)) {
-                state.activeMembers.unshift({ ...m, time: 30, rally: 0 });
-                save();
+        const key = document.getElementById('key-input').value.trim();
+        
+        if (MEMBER_DB[id]) {
+            if (MEMBER_DB[id].key === key) {
+                localStorage.setItem('wos_id', id);
+                localStorage.setItem('wos_name', MEMBER_DB[id].name);
+                location.reload();
+            } else {
+                alert("専用キーが正しくありません");
             }
-            location.reload();
-        } else { alert("IDが違います"); }
+        } else {
+            alert("該当するIDが見つかりません");
+        }
+    }
+
+    function addDest() {
+        const name = document.getElementById('new-dest-name').value.trim();
+        if (name) {
+            state.destinations.push({ name: name, memberTimes: {}, memberRally: {} });
+            document.getElementById('new-dest-name').value = '';
+            save();
+            render();
+        }
+    }
+
+    function deleteDest(idx) {
+        if (state.destinations.length <= 1) return alert("最後の場所は削除できません");
+        if (confirm(`「${state.destinations[idx].name}」を削除しますか？`)) {
+            state.destinations.splice(idx, 1);
+            state.currentDestIdx = 0;
+            save();
+            render();
+        }
     }
 
     function addMember(id) {
-        if (!state.activeMembers.find(m => m.id === id)) {
-            const m = MEMBER_MASTER.find(x => x.id === id);
-            state.activeMembers.push({ ...m, time: 30, rally: 0 });
+        if (!state.activeMemberIds.includes(id)) {
+            state.activeMemberIds.push(id);
             save();
             render();
         }
     }
 
     function removeMember(id) {
-        // 自分自身は削除できないように設定（常に最上部に表示するため）
-        const sid = localStorage.getItem('wos_id');
-        if (id === sid) {
-            alert("自分自身はリストから削除できません");
-            return;
-        }
-        state.activeMembers = state.activeMembers.filter(m => m.id !== id);
+        if (id === localStorage.getItem('wos_id')) return;
+        state.activeMemberIds = state.activeMemberIds.filter(mid => mid !== id);
         save();
         render();
     }
@@ -151,70 +194,84 @@
         const sid = localStorage.getItem('wos_id');
         if(!sid) return;
 
-        // ターゲット表示
+        const currentDest = state.destinations[state.currentDestIdx];
+        document.getElementById('editing-dest-name').innerText = currentDest.name;
+
+        document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
+            <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
+        `).join('');
+
         document.getElementById('target-area').innerHTML = `
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b>${state.enemy.name}</b>
+                    <b>${currentDest.name} カウント</b>
                     <b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b>
                 </div>
                 <div class="btn-grid" style="margin-top:15px;">
-                    <button class="action-btn" onclick="state.enemy.remain+=60;save();">+1分</button>
-                    <button class="action-btn" onclick="state.enemy.remain+=1;save();">+1s</button>
-                    <button class="action-btn" onclick="state.enemy.remain-=1;save();">-1s</button>
+                    <button class="action-btn" onclick="state.enemyRemain+=60;save();">+1分</button>
+                    <button class="action-btn" onclick="state.enemyRemain+=1;save();">+1s</button>
+                    <button class="action-btn" onclick="state.enemyRemain-=1;save();">-1s</button>
                 </div>
             </div>`;
 
-        // 参加中リスト（自分は「削除」ボタンを表示しない）
-        document.getElementById('active-list').innerHTML = state.activeMembers.map((m, i) => `
-            <div class="member-row" style="${m.id === sid ? 'border: 1px solid var(--accent); background: rgba(74, 222, 128, 0.1);' : ''}">
-                <span><b>${m.name}${m.id === sid ? ' (あなた)' : ''}</b></span>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="number" style="width:60px; height:35px; background:#000; color:#fff; border:1px solid #4ade80; text-align:center; border-radius:4px;" 
-                        value="${m.time}" oninput="state.activeMembers[${i}].time=Number(this.value);save();">
-                    ${m.id !== sid ? `<button class="remove-btn" onclick="removeMember('${m.id}')">削除</button>` : ''}
+        document.getElementById('active-list').innerHTML = state.activeMemberIds.map((mid) => {
+            const m = MEMBER_DB[mid];
+            if(!m) return '';
+            const time = currentDest.memberTimes[mid] || 30;
+            return `
+            <div class="member-row" style="${mid === sid ? 'border: 1px solid var(--accent); background: rgba(74,222,128,0.1);' : ''}">
+                <span><b>${m.name}</b></span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="number" style="width:55px; height:35px; background:#000; color:#fff; border:1px solid #4ade80; text-align:center;" 
+                        value="${time}" oninput="state.destinations[${state.currentDestIdx}].memberTimes['${mid}']=Number(this.value);save();">
+                    ${mid !== sid ? `<button class="remove-btn" onclick="removeMember('${mid}')">×</button>` : ''}
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
-        // 選択用リスト（自分自身は表示しない）
-        document.getElementById('master-selection-list').innerHTML = MEMBER_MASTER
-            .filter(m => m.id !== sid)
-            .map(m => `
+        document.getElementById('master-selection-list').innerHTML = Object.keys(MEMBER_DB)
+            .filter(id => !state.activeMemberIds.includes(id))
+            .map(id => `
                 <div class="member-row" style="background:none;">
-                    <span>${m.name}</span>
-                    <button class="add-btn" onclick="addMember('${m.id}')">参加</button>
+                    <span>${MEMBER_DB[id].name}</span>
+                    <button class="add-btn" onclick="addMember('${id}')">参加</button>
                 </div>`).join('');
+
+        document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
+            <div class="member-row">
+                <span>${d.name}</span>
+                <button class="remove-btn" onclick="deleteDest(${i})">削除</button>
+            </div>
+        `).join('');
             
-        const my = state.activeMembers.find(m => m.id === sid);
+        const myRally = (currentDest.memberRally && currentDest.memberRally[sid]) || 0;
         [0,1,5].forEach(r => {
             const btn = document.getElementById('rally-'+r);
-            if(btn) btn.classList.toggle('active', my && my.rally === r);
+            if(btn) btn.classList.toggle('active', myRally === r);
         });
     }
 
     function updateRally(r) {
         const sid = localStorage.getItem('wos_id');
-        const m = state.activeMembers.find(x => x.id === sid);
-        if(m) { m.rally = r; save(); render(); }
+        const currentDest = state.destinations[state.currentDestIdx];
+        if (!currentDest.memberRally) currentDest.memberRally = {};
+        currentDest.memberRally[sid] = r;
+        save();
+        render();
     }
 
     window.onload = () => {
         const sid = localStorage.getItem('wos_id');
         if (!sid) document.getElementById('auth-screen').style.display = 'flex';
         else {
-            // 初回ログイン時、万が一自分がいなければ追加
-            if (!state.activeMembers.find(x => x.id === sid)) {
-                const me = MEMBER_MASTER.find(x => x.id === sid);
-                if(me) state.activeMembers.unshift({ ...me, time: 30, rally: 0 });
-                save();
-            }
+            if (!state.activeMemberIds.includes(sid)) state.activeMemberIds.unshift(sid);
             document.getElementById('main-app').style.display = 'flex';
             render();
             setInterval(() => {
-                if(state.enemy.remain > 0) state.enemy.remain--;
+                if(state.enemyRemain > 0) state.enemyRemain--;
                 document.getElementById('masterClock').innerText = new Date().toLocaleTimeString('ja-JP',{hour12:false});
                 const td = document.getElementById('time-display');
-                if(td) td.innerText = Math.floor(state.enemy.remain/60) + ":" + (state.enemy.remain%60).toString().padStart(2,'0');
+                if(td) td.innerText = Math.floor(state.enemyRemain/60) + ":" + (state.enemyRemain%60).toString().padStart(2,'0');
             }, 1000);
         }
     };
