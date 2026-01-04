@@ -29,13 +29,12 @@
         .dest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
         .member-row { display: flex; flex-direction: column; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; }
         
-        /* 複数場所の設定エリア */
         .dest-time-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .dest-time-item:last-child { border-bottom: none; }
         .dest-label { font-size: 0.85rem; color: var(--secondary); flex: 1; }
 
         .time-ctrl { display: flex; align-items: center; gap: 4px; background: #000; padding: 2px; border-radius: 6px; }
-        .step-btn { background: #334155; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; font-weight: bold; font-size: 1rem; }
+        .step-btn { background: #334155; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; }
         .time-val { width: 45px; text-align: center; font-weight: bold; color: var(--accent); }
         .time-val.alert { color: var(--primary); text-decoration: underline; }
 
@@ -114,6 +113,16 @@
 </div>
 
 <script>
+    // 指定された順序の配列
+    const ORDERED_MEMBER_IDS = [
+        "493212867", "492059189", "491154948", "491133240", "492271392", 
+        "492055360", "491527765", "492822360", "490876270", "529236482", 
+        "490839848", "492658594", "492132013", "491137229", "493706541", 
+        "490759416", "493861396", "492547880", "494362543", "491563333", 
+        "492842337", "491787053", "493183277", "493645404", "494203981", 
+        "491300814", "497820788", "492164518", "615629018"
+    ];
+
     const MEMBER_DB = {
         "493212867": { name: "ボンド", key: "b3d2i867" }, "492059189": { name: "スミスミ", key: "s2m5i189" },
         "491154948": { name: "NOBU", key: "n1b5u948" }, "491133240": { name: "ユフィ", key: "y1f3u240" },
@@ -133,26 +142,28 @@
     };
 
     const DEFAULT_TIME = 15;
-    let state = JSON.parse(localStorage.getItem('wos_v13')) || {
+    const STORAGE_KEY = 'wos_vFinal';
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         currentDestIdx: 0,
         destinations: [{ name: "王城", memberTimes: {}, memberLocked: {} }],
         activeMemberIds: [],
         enemyRemain: 300
     };
 
-    function save() { localStorage.setItem('wos_v13', JSON.stringify(state)); }
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-    function updateTime(mid, destIdx, delta) {
-        const dest = state.destinations[destIdx];
+    function updateTime(mid, dIdx, delta) {
+        const dest = state.destinations[dIdx];
         if (dest.memberLocked && dest.memberLocked[mid]) return;
-        let t = dest.memberTimes[mid] || DEFAULT_TIME;
+        let t = (dest.memberTimes && dest.memberTimes[mid]) || DEFAULT_TIME;
         t = Math.max(0, t + delta);
+        if(!dest.memberTimes) dest.memberTimes = {};
         dest.memberTimes[mid] = t;
         save(); render();
     }
 
-    function toggleLock(mid, destIdx) {
-        const dest = state.destinations[destIdx];
+    function toggleLock(mid, dIdx) {
+        const dest = state.destinations[dIdx];
         if (!dest.memberLocked) dest.memberLocked = {};
         dest.memberLocked[mid] = !dest.memberLocked[mid];
         save(); render();
@@ -162,7 +173,7 @@
         const sid = localStorage.getItem('wos_id');
         if(!sid) return;
 
-        // 実行タブ用
+        // 実行画面用
         document.getElementById('dest-btns').innerHTML = state.destinations.map((d, i) => `
             <button class="action-btn ${state.currentDestIdx === i ? 'active' : ''}" onclick="state.currentDestIdx=${i};save();render();">${d.name}</button>
         `).join('');
@@ -170,15 +181,15 @@
         const currentDest = state.destinations[state.currentDestIdx];
         document.getElementById('target-area').innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between;"><b>${currentDest.name}</b><b style="font-size:2rem; color:var(--warning);" id="time-display">0:00</b></div></div>`;
 
-        // 名簿選択タブ：参加中メンバーの全拠点設定
-        const orderedIds = Object.keys(MEMBER_DB);
+        // 名簿選択：参加中メンバー (自分を最上部に、あとは指定順)
         const displayActiveIds = state.activeMemberIds.slice().sort((a, b) => {
             if (a === sid) return -1; if (b === sid) return 1;
-            return orderedIds.indexOf(a) - orderedIds.indexOf(b);
+            return ORDERED_MEMBER_IDS.indexOf(a) - ORDERED_MEMBER_IDS.indexOf(b);
         });
 
         document.getElementById('active-list').innerHTML = displayActiveIds.map(mid => {
             const m = MEMBER_DB[mid];
+            if(!m) return '';
             return `
             <div class="member-row" style="${mid === sid ? 'border-left:4px solid var(--accent); background:rgba(74,222,128,0.05);' : ''}">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -186,7 +197,7 @@
                     ${mid !== sid ? `<button class="remove-btn" onclick="state.activeMemberIds=state.activeMemberIds.filter(id=>id!=='${mid}');save();render();">×</button>` : ''}
                 </div>
                 ${state.destinations.map((dest, dIdx) => {
-                    const time = dest.memberTimes[mid] || DEFAULT_TIME;
+                    const time = (dest.memberTimes && dest.memberTimes[mid]) || DEFAULT_TIME;
                     const isDefault = time === DEFAULT_TIME;
                     const isLocked = dest.memberLocked && dest.memberLocked[mid];
                     return `
@@ -205,21 +216,19 @@
             </div>`;
         }).join('');
 
-        // メンバー追加リスト（指定順）
-        document.getElementById('master-selection-list').innerHTML = orderedIds
+        // メンバー追加：指定順を強制
+        document.getElementById('master-selection-list').innerHTML = ORDERED_MEMBER_IDS
             .filter(id => !state.activeMemberIds.includes(id) && id !== sid)
-            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155;">
+            .map(id => `<div class="member-row" style="flex-direction:row; justify-content:space-between; background:none; border:1px solid #334155; align-items:center;">
                 <span>${MEMBER_DB[id].name}</span>
                 <button class="add-btn" onclick="state.activeMemberIds.push('${id}');save();render();">参加</button>
             </div>`).join('');
 
-        // 設定：場所管理
         document.getElementById('dest-manage-list').innerHTML = state.destinations.map((d, i) => `
             <div class="member-row" style="flex-direction:row; justify-content:space-between;"><span>${d.name}</span><button class="remove-btn" onclick="if(confirm('削除しますか？')){state.destinations.splice(${i},1);state.currentDestIdx=0;save();render();}">削除</button></div>
         `).join('');
     }
 
-    /* 以下、共通関数（ログイン・タブ切り替え等） */
     function toggleDestNumbers() {
         const type = document.getElementById('dest-type').value;
         const area = document.getElementById('number-select-area');
